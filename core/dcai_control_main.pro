@@ -323,24 +323,24 @@ pro DCAI_Control_Main, settings_file=settings_file, $		;\\ required
 				 camera_caps:ptr_new(/alloc), $ 	;\\ Structure of camera capabilities, returned by the driver
 				 camera_settings:cam_settings, $ 	;\\ Structure of camera settings, returned by the driver
 
-				 cam_driver_base:0L, $ 		;\\ Widget ID into which the camera driver gui is embedded
-				 gui_stop:0, $ 				;\\ Flag to indicate that script is not being executed
-				 gui_closed:0, $ 			;\\ Flag to indicate that the main console gui is closed
-				 timer_tick_interval:0.1, $ ;\\ Interval between IDL timer ticks, which drive everything
-				 info_update_ticks:0, $ 	;\\ Number of timer ticks before the info list is updated
-				 timer_ticks:0, $ 			;\\ Track all timer ticks
-				 run:1, $ 					;\\ Flag to indicate that we are running
+				 cam_driver_base:0L, $ 				;\\ Widget ID into which the camera driver gui is embedded
+				 gui_stop:0, $ 						;\\ Flag to indicate that script is not being executed
+				 gui_closed:0, $ 					;\\ Flag to indicate that the main console gui is closed
+				 timer_tick_interval:0.1, $ 		;\\ Interval between IDL timer ticks, which drive everything
+				 info_update_ticks:0, $ 			;\\ Number of timer ticks before the info list is updated
+				 timer_ticks:0, $ 					;\\ Track all timer ticks
+				 run:1, $ 							;\\ Flag to indicate that we are running
 
-				 image:ptr_new(/alloc), $ 		;\\ Most recently acquired processed image
-				 raw_image:ptr_new(/alloc), $ 	;\\ Most recently acquired raw image
-				 image_systime:0D, $			;\\ systime(/sec) at which image was acquired
-				 frame_rate:0D, $, 				;\\ Frame rate
-				 phasemap:[ptr_new(/alloc), ptr_new(/alloc)], $ ;\\ Phasemap, one for each etalon, one for both etalons
-				 phasemap_systime:[0D, 0D, 0D], $ ;\\ systime(/sec) at which phasemap was acquired, for each etalon
+				 image:ptr_new(/alloc), $ 			;\\ Most recently acquired processed image
+				 raw_image:ptr_new(/alloc), $ 		;\\ Most recently acquired raw image
+				 image_systime:0D, $				;\\ systime(/sec) at which image was acquired
+				 frame_rate:0D, $, 					;\\ Frame rate
+				 phasemap:[ptr_new(/alloc), ptr_new(/alloc)], $ ;\\ Phasemap, one for each etalon
+				 phasemap_systime:[0D, 0D, 0D], $ 	;\\ systime(/sec) at which phasemap was acquired, for each etalon
 
-				 plugins:ptr_new(/alloc), $ 	;\\ Array of object references, one for each plugin
-				 timer_list:ptr_new(/alloc), $ 	;\\ Array of objects requiring timer events
-				 frame_list:ptr_new(/alloc), $ 	;\\ Array of objects requiring frame events
+				 plugins:ptr_new(/alloc), $ 		;\\ Array of object references, one for each plugin
+				 timer_list:ptr_new(/alloc), $ 		;\\ Array of objects requiring timer events
+				 frame_list:ptr_new(/alloc), $ 		;\\ Array of objects requiring frame events
 				 active_plugin:{object:obj_new(), uid:''}, $ ;\\ Field containing information on the currently active plugin, if any
 
 				 current_queue:ptr_new(/alloc), $ 	;\\ The current command queue

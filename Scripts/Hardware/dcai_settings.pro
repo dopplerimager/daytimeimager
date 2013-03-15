@@ -1,28 +1,28 @@
 
 
-;\\ Settings file written (UT): 2013-03-12
-pro DCAI_Settings, settings = settings
+;\\ Settings file written (UT): 2013-03-15
+pro dcai_settings, settings = settings
 
 	settings.etalon[0].name = ''
-	settings.etalon[0].port = 3
+	settings.etalon[0].port = 4
 	settings.etalon[0].gap_mm = 3.0000
 	settings.etalon[0].refractive_index = 1.0000
-	settings.etalon[0].steps_per_order = 16.9047
-	settings.etalon[0].scan_voltage = 48000
-	settings.etalon[0].reference_voltage = 57300
-	settings.etalon[0].parallel_offset = [0, -855, 183]
-	settings.etalon[0].leg_gain = [1.0000, 1.0000, 1.0000]
+	settings.etalon[0].steps_per_order = 17.1025
+	settings.etalon[0].scan_voltage = 47700
+	settings.etalon[0].reference_voltage = 47400
+	settings.etalon[0].parallel_offset = [0, 2867, 4106]
+	settings.etalon[0].leg_gain = [1.0000, 0.9550, 0.9670]
 	settings.etalon[0].wedge_voltage = [35460, 60134, 10000]
 	settings.etalon[0].voltage_range = [0, 65535]
 	
 	settings.etalon[1].name = ''
-	settings.etalon[1].port = 4
+	settings.etalon[1].port = 3
 	settings.etalon[1].gap_mm = 0.2460
 	settings.etalon[1].refractive_index = 1.0000
-	settings.etalon[1].steps_per_order = 16.6643
-	settings.etalon[1].scan_voltage = 10000
-	settings.etalon[1].reference_voltage = 2000
-	settings.etalon[1].parallel_offset = [0, 1613, 7025]
+	settings.etalon[1].steps_per_order = 16.4532
+	settings.etalon[1].scan_voltage = 12000
+	settings.etalon[1].reference_voltage = 20803
+	settings.etalon[1].parallel_offset = [0, -1308, 528]
 	settings.etalon[1].leg_gain = [1.0000, 0.8909, 0.7213]
 	settings.etalon[1].wedge_voltage = [53712, 5393, 5393]
 	settings.etalon[1].voltage_range = [0, 65535]
@@ -31,8 +31,8 @@ pro DCAI_Settings, settings = settings
 	settings.filter.name = ['one', 'two', 'three', 'four', 'five', 'six']
 	
 	settings.mirror.port = 1
-	settings.mirror.sky = 98826
-	settings.mirror.cal = 2484
+	settings.mirror.sky = 98774
+	settings.mirror.cal = 2486
 	
 	settings.calibration.port = 0
 	

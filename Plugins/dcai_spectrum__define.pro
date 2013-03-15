@@ -54,6 +54,8 @@ pro DCAI_Spectrum::frame
 
 	COMMON DCAI_Control, dcai_global
 
+	common spectrum_test, _background
+
 
 	;\\ GET THE ID OF THE ACTIVE SCANNER
 		id = self.lambda_scanning
@@ -66,6 +68,7 @@ pro DCAI_Spectrum::frame
 
 			channel = dcai_global.scan.channel[e_idx]
 			n_channels = dcai_global.scan.n_channels[e_idx]
+			if channel eq 0 then _background = 0
 
 			info_string0 = 'Scan # ' + string(self.lambdas[self.lambda_scanning].current_scan + 1, f='(i0)')
 			info_string1 = 'Channel # ' + string(channel, f='(i0)') + '/' + string(n_channels, f='(i0)')
@@ -97,7 +100,13 @@ pro DCAI_Spectrum::frame
 
 
 	;\\ UPDATE ACCUMULATED IMAGE
+
 		*self.lambdas[id].accumulated_image += image
+		if size(_background, /type) eq 0 then begin
+			_background = median(image)
+		endif else begin
+			_background = [_background, median(image)]
+		endelse
 
 
 	;\\ IF A SCAN WAS FINISHED...
@@ -140,13 +149,25 @@ pro DCAI_Spectrum::frame
 				dl = (self.lambdas[id].wavelength_range_full[1] - $
 					  self.lambdas[id].wavelength_range_full[0]) / $
 					  (self.lambdas[id].n_scan_channels - 1)
-				xaxis = findgen(spec_dims[1])*dl + min_l
+
+
+
+				case dcai_global.scan.type of
+					'normal': xaxis = indgen(spec_dims[1])
+					'wavelength': xaxis = findgen(spec_dims[1])*dl + min_l
+				endcase
 
 			;\\ loop
 				for z = 0, spec_dims[0] - 1 do begin
 
 					spx = float(reform((*self.lambdas[id].spectra)[z, *]))
-					norm = float(reform((*self.lambdas[id].normmap)[z, *]))
+
+					if dcai_global.scan.type ne 'wavelength' then begin
+						norm = spx
+						norm[*] = 1
+					endif else begin
+						norm = float(reform((*self.lambdas[id].normmap)[z, *]))
+					endelse
 
 				;\\ snr calculation
 				 	use = where(norm ne 0, n_chann) ;\\ spectral bins which contain signal for this zone
@@ -155,19 +176,28 @@ pro DCAI_Spectrum::frame
 					signal_noise[z] = power[1]/median(power[(n_chann*3./8.):(n_chann/2.)])
 
 				;\\ now plot
-					sn = norm(sort(norm))
-					un = sn(uniq(sn))
-					use = where(norm gt un[n_elements(un)*.5], n_use)
-					if n_use eq 0 then continue
+					if dcai_global.scan.type ne 'wavelength' then begin
+						use = indgen(n_elements(xaxis))
+						use_axis = use
+					endif else begin
+						sn = norm(sort(norm))
+						un = sn(uniq(sn))
+						use = where(norm gt un[n_elements(un)*.5], n_use)
+						if n_use eq 0 then continue
+						spx = spx[use] / norm[use]
 
-					spx = spx[use] / norm[use]
+						use_axis = where(xaxis ge self.lambdas[id].wavelength_range[0] and $
+									 xaxis le self.lambdas[id].wavelength_range[1], n_x_use)
+					endelse
+
+					;spx -= smooth(spx, n_elements(spx)/3., /edge)
+					fit = linfit(findgen(n_elements(spx)), spx)
+					spx -= fit[1]*findgen(n_elements(spx))
 					spx -= min(spx)
 
-					plot, xaxis, xaxis, color = 255, /nodata, yrange = [0, max(spx)], $
+					plot, xaxis[use_axis], xaxis[use_axis], color = 255, /nodata, yrange = [0, max(spx)], $
 						  /noerase, xtickname=blank, xstyle=5, ystyle=5, $
 						  pos=[zc[z,0],zc[z,1],zc[z,0],zc[z,1]] + [-.07,-.07,.07,.07]
-					oplot, self.lambdas[id].wavelength_range[[0,0]], [0,max(spx)], color = 100, line=1
-					oplot, self.lambdas[id].wavelength_range[[1,1]], [0,max(spx)], color = 100, line=1
 					oplot, xaxis[use], spx
 
 					;\\ TEMPORARY - FOR TESTING
@@ -195,6 +225,7 @@ pro DCAI_Spectrum::frame
 			exp_finished = 0
 			if self.lambdas[id].current_scan ge self.lambdas[id].min_scans then begin ;\\ Make sure the minimum number of scans have been done
 
+				exp_finished=1 ;\\ TODO remove this
 				if self.lambdas[id].current_scan eq self.lambdas[id].max_scans then exp_finished = 1 ;\\ Max scans reached
 				if snr ge self.lambdas[id].min_snr then exp_finished = 1 							 ;\\ Min snr satisfied
 
@@ -205,12 +236,29 @@ pro DCAI_Spectrum::frame
 			if self.lambdas[id].finalize eq 1 then exp_finished = 1
 
 
-
 		;\\ STOP THE CURRENT SCAN
 			self->Scan, 0, command = {index:id, action:'stop'}
 
 		;\\ IF THE EXPOSURE IS FINISHED, SORT THAT OUT, ELSE RESTART
+
 			if exp_finished eq 1 then begin
+
+					spectra = float(reform((*self.lambdas[id].spectra)))
+					normalize = float(reform((*self.lambdas[id].normmap)))
+					wavelength_full_range = self.lambdas[id].wavelength_range_full
+					wavelength_axis = xaxis
+					wavelength_range = self.lambdas[id].wavelength_range
+					scan_channels = self.lambdas[id].n_scan_channels
+					data = {spectra:spectra, $
+							normalize:normalize, $
+							wavelength_axis:wavelength_axis, $
+							wavelength_range:wavelength_range, $
+							wavelength_full_range:wavelength_full_range, $
+							scan_channels:scan_channels, $
+							background:_background}
+					save, filename='c:\users\daytimeimager\Spex_' + dt_tm_fromjs(dt_tm_tojs(systime()), format='Y$_0n$_0d$_h$_m$_s$') + '.idlsave', data
+
+
 				self.lambdas[id].current_exposure ++
 
 				;\\ IF MULTIPLE EXPOSURES HAVE BEEN SPECIFIED, KEEP GOING UNTIL THEY ARE COMPLETE
@@ -601,6 +649,7 @@ pro DCAI_Spectrum::NewSpectrum, info
 
 		;\\ NEED THE LARGEST WAVELENGTH OFFSET RELATIVE TO FRINGE CENTER,
 		;\\ TO CALCULATE REQUIRED WAVELENGTH RANGE AT FRINGE CENTER
+
 		defined = where(*self.lambdas[index].zonemap ne -1, n_defined)
 		max_offset = max(abs(offsets[defined]))
 		self.lambdas[index].wavelength_range_full = [info.start_lambda, info.stop_lambda + max_offset]
@@ -930,7 +979,7 @@ function DCAI_Spectrum::uid, args=args
 	endif else begin
 		;\\ BUILD UID FROM THE GIVEN INFO
 		;\\ args = {wavelength:0.0, etalons:intarr[], ...}
-		uid = 'spectrum_' + string(args.wavelength*10, f='(i04)') + '_' + $
+		uid = 'spectrum_' + string(args.wavelength*100, f='(i04)') + '_' + $
 			  strjoin(string(args.etalons, f='(i01)'), '') + '_' + $
 			  string(args.n_zones, f='(i04)')
 		return, uid

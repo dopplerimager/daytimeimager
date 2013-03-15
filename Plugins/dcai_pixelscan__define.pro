@@ -111,10 +111,13 @@ pro DCAI_PixelScan::frame
 		max_lambda = self.wave_stop
 		max_xaxis = interpol([min_lambda, max_lambda], [0,self.wave_channels], indgen(self.wave_channels))
 
-		plot, max_xaxis, *self.history, /nodata, yrange=[0, max((*self.history))], $
-			  xtitle = 'Wavelength (nm)', /xstyle
+		pts = where(*self.history ne 0, npts)
+		if npts eq 0 then ymax = 0 else ymax = max((*self.history)[pts])
 
-		xaxis = interpol([self.wave_start, self.wave_stop], [0,self.wave_channels], indgen(self.wave_channels))
+		plot, max_xaxis, *self.history, /nodata, yrange=[0, ymax], $
+			  xtitle = 'Wavelength (nm)', /xstyle, /ystyle
+
+		xaxis = interpol([self.wave_start, self.wave_stop], [0,self.wave_channels-1], indgen(self.wave_channels))
 
 		for k = 0, n_elements(self.pixels_used) - 1 do begin
 
@@ -123,16 +126,37 @@ pro DCAI_PixelScan::frame
 			y = self.pixel[k,1] > 0
 			y = y < dims[1]
 
-			if self.scanning eq 1 and channel ge 0 then (*self.history)[k, channel] = image[x,y]
+			if self.scanning eq 1 and channel ge 0 then (*self.history)[k, channel] += image[x,y]
 
 			if self.pixels_used[k] eq 1 then begin
 				yvals = (*self.history)[k, *]
-				pts = where(yvals ne 0, npts)
+				pts = where(yvals ne -999, npts)
 				if npts gt 0 then $
 					oplot, (xaxis + offset_map[x,y])[pts], yvals[pts], $
 						color = 50 + 200*k/float(n_elements(self.pixels_used))
+				if npts gt 6 then $
+					oplot, (xaxis + offset_map[x,y])[pts], smooth(yvals[pts], 5, /edge), thick=2
 			endif
 		endfor
+	endif
+
+
+	if channel eq self.wave_channels - 1 then begin
+		;\\ RESTART SCANNING, COADD SIGNAL
+		etalons = where(self.wave_etalons eq 1, netalons)
+		args = 0
+
+		args = [{caller:self, etalon:0},{caller:self, etalon:1}]
+		success = DCAI_ScanControl('stop', 'wavelength', args)
+		print, 'Stop ', success
+		if success eq 1 then self.scanning = 0
+
+		arg = {caller:self, etalons:etalons, n_channels:self.wave_channels, $
+			   wavelength_range_nm:[self.wave_start, self.wave_stop]}
+
+		success = DCAI_ScanControl('start', 'wavelength', arg)
+		print, 'Start ', success
+		if success eq 1 then self.scanning = 1
 	endif
 
 	if dcai_global.scan.scanning[0] eq 0 then self.scanning = 0
@@ -201,8 +225,7 @@ pro DCAI_PixelScan::Scan, event, struc=struc
 					if success eq 1 then self.scanning = 1
 				endif
 
-				*self.history = lonarr(n_elements(self.pixels_used), self.wave_channels)
-				(*self.history)[*] = -999
+				*self.history = dblarr(n_elements(self.pixels_used), self.wave_channels)
 			endif
 		end
 

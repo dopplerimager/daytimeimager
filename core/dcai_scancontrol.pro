@@ -157,9 +157,13 @@ function DCAI_ScanControl, command, scan_type, argument, $
 					del_orders = (del_lambda / cws[etz_idx,cws_idx].fsr) mod 1    					;\\ CONVERT TO # ORDERS
 					del_volts = del_orders * etz.steps_per_order * dcai_global.scan.wavelength_nm 	;\\ CONVERT TO 'VOLTAGE'
 
+
+
 					;\\ SET THE STARTING NOMINAL VOLTAGE
 					home_volts = cws[etz_idx,cws_idx].home_voltage
 					dcai_global.scan.offset[etz_idx] = home_volts + del_volts
+					print, home_volts + del_volts
+
 
 				endfor
 
@@ -290,7 +294,7 @@ function DCAI_ScanControl, command, scan_type, argument, $
 						dcai_global.settings.etalon[idx].leg_voltage = dcai_global.settings.etalon[idx].leg_voltage < $
 																	   dcai_global.settings.etalon[idx].voltage_range[1]
 
-						DCAI_Log, 'E'+string(idx, f='(i0)') + strjoin(string(dcai_global.settings.etalon[idx].leg_voltage, f='(i0)'), ','), /no_write
+						;DCAI_Log, 'E'+string(idx, f='(i0)') + strjoin(string(dcai_global.settings.etalon[idx].leg_voltage, f='(i0)'), ','), /no_write
 
 						call_procedure, dcai_global.info.drivers, $
 								{device:'etalon_setlegs', number:idx, $
@@ -299,6 +303,8 @@ function DCAI_ScanControl, command, scan_type, argument, $
 					endelse
 				endif
 			endfor
+
+			wait, .05
 
 			return, 1
 		end
@@ -350,8 +356,8 @@ function DCAI_ScanControl, command, scan_type, argument, $
 				pmap = *dcai_global.info.phasemap[pts[0]]/cws[pts[0]].view_wavelength_nm
 				lmap = cws[pts[0]].fsr * (pmap - pmap[cws[0].center[0], cws[0].center[1]])
 			endif else begin
-				wgt0 = .5
-				wgt1 = .5
+				wgt0 = 1.0
+				wgt1 = 0.0
 				pmap0 = *dcai_global.info.phasemap[0]/cws[0].view_wavelength_nm
 				lmap0 = cws[0].fsr * (pmap0 - pmap0[cws[0].center[0], cws[0].center[1]])
 				pmap1 = *dcai_global.info.phasemap[1]/cws[1].view_wavelength_nm

@@ -164,6 +164,7 @@ pro DCAI_ScanCalibrate::Calibrate, event
 			fsr /= 1E-9
 
 			;\\ WRAP THE PHASEMAP
+			pmap /= lambda
 			pmap = (pmap mod 1)
 
 			;\\ CREATE A DISTANCE MAP FROM SELECTED CENTER
@@ -171,9 +172,12 @@ pro DCAI_ScanCalibrate::Calibrate, event
 			dist_circle, dist_map, dims, self.center[0], self.center[1]
 
 			;\\ CALCULATE ORDER AT CENTER AND MEAN ORDER AT SELECTED RADIUS
+			pts = where(dist_map lt 3, npts)
+			;center_order = median(pmap[pts])
 			center_order = pmap[self.center[0], self.center[1]]
 			pts = where(dist_map gt .98*self.radius and dist_map lt 1.02*self.radius, npts)
 			radius_order = median(pmap[pts])
+
 
 			;\\ CONVERT ORDER DIFFERENCE TO WAVELENGTH
 			del_lambda = (center_order - radius_order)*fsr

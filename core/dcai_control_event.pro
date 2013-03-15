@@ -2,6 +2,53 @@
 @dcai_script_utilities
 @sdi_synth_fringes
 
+pro foo
+
+	COMMON DCAI_Control, dcai_global
+
+
+	pmap0 = *dcai_global.info.phasemap[0]
+	pmap1 = *dcai_global.info.phasemap[1]
+
+
+	pmap0 -= min(pmap0)
+	pmap1 -= min(pmap1)
+
+	ratio = pmap1/pmap0
+	ratio = ratio > 0.001
+	ratio = ratio < 10
+
+
+	slice0 = pmap0[*,250]
+	slice1 = pmap1[*,250]
+
+	fit0 = poly_fit(findgen(501), slice0, 2, yfit = curve0)
+	fit1 = poly_fit(findgen(501), slice1, 2, yfit = curve1)
+
+	print, fit0
+	print, fit1
+	print, fit1[2] / fit0[2]
+
+
+
+	window, 0
+	loadct, 0
+
+	plot, curve1
+	oplot, slice1
+	oplot, curve0
+	oplot, slice0
+
+	;tv, bytscl(ratio, min=0, max=.2)
+
+	;plot, pmap0[*,250]/pmap1[*,250]
+
+	;plot, pmap0[*,250]
+	;oplot, pmap1[*,250]
+
+end
+
+
 ;\\ EVENT HANDLER FOR THE DCAI GUI
 pro DCAI_Control_Event, event
 
@@ -167,7 +214,7 @@ pro DCAI_Control_Event, event
 				    	info_list = ['Site: ' + dcai_global.settings.site.name, $
 				    				 'Lat/Lon: ' + strjoin(string([dcai_global.settings.site.geo_lat, dcai_global.settings.site.geo_lon], f='(i0)'), ', '), $
 				    				 'UT Time: ' + HourUtHHMMSS(), $
-				       	             'Solar Zenith Angle: ' + SolarZenithAngleStr(), $
+				       	             'Solar Elevation Angle: ' + SolarZenithAngleStr(), $
 				       	             'Settings: ' + file_basename(dcai_global.info.settings_file), $
 				       	             '', $
 				       	             'Frame Rate: ' + string(dcai_global.info.frame_rate, f='(f0.2)') + ' Hz', $

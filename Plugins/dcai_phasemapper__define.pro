@@ -99,7 +99,7 @@ pro DCAI_Phasemapper::frame
 	;\\ STORE THE CURRENT CHANNEL NUMBER
 		channels = dcai_global.scan.channel
 		pt = where(channels ne -1, npt)
-		if npt gt 0 then channel = float(channels[pt[0]])
+		if npt gt 0 then channel = float(channels[pt[0]]) else channel = -1
 
 	;\\ UPDATE STATUS BAR
 	status = ''
@@ -238,6 +238,8 @@ pro DCAI_Phasemapper::Scan, event, action=action
 		endif
 	endfor
 
+	inactive_etalon = (where(self.etalons eq 0))[0]
+
 	case action of
 		'start': begin
 
@@ -247,6 +249,16 @@ pro DCAI_Phasemapper::Scan, event, action=action
 				if success eq 0 then return
 
 			if self.scanning ne 1 and self.wavelength ne 0 then begin
+
+				;\\ WEDGE THE INACTIVE ETALON
+				volts = dcai_global.settings.etalon[inactive_etalon].wedge_voltage
+				dcai_global.settings.etalon[inactive_etalon].leg_voltage = volts
+
+				command = {device:'etalon_setlegs', number:inactive_etalon, $
+								   port:dcai_global.settings.etalon[inactive_etalon].port, $
+								   voltage:dcai_global.settings.etalon[inactive_etalon].leg_voltage}
+				call_procedure, dcai_global.info.drivers, command
+
 
 				dims = size(*dcai_global.info.image, /dimensions)
 				*self.p = fltarr(dims[0], dims[1])

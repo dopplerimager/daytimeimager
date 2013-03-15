@@ -97,6 +97,8 @@ pro DCAI_StepsperOrder::frame
 
 	COMMON DCAI_Control, dcai_global
 
+	tvlct, ct_r, ct_g, ct_b, /get
+
 	status = ''
 	case self.scanning of
 		0: status = 'Status: Idle'
@@ -140,11 +142,11 @@ pro DCAI_StepsperOrder::frame
 
 
 	;\\ HERE WE ARE SCANNING
-	if self.scanning eq 1 then begin
+	channel = dcai_global.scan.channel[self.etalon]
+	if self.scanning eq 1 and channel ge 0 then begin
 
 		nsteps = float(dcai_global.scan.n_channels[self.etalon])
 		new_frame = *dcai_global.info.image
-		channel = dcai_global.scan.channel[self.etalon]
 
 		(*self.images)[*,*,channel] += new_frame
 		cross_corr = total(reform((*self.images)[*,*,channel]) * (*self.ref_image)) / (2*float(n_elements((*self.images)[*,*,0])))
@@ -157,9 +159,11 @@ pro DCAI_StepsperOrder::frame
 			if nuse gt 2 then begin
 				xarr = (findgen(n_elements(*self.xcorrs)))*float(self.step[self.etalon]) + float(self.start[self.etalon])
 
-				plot, xarr[use], (*self.xcorrs)[use], psym=1, thick=2, $
+				plot, xarr[use], (*self.xcorrs)[use], psym=6, sym=.5, thick=2, $
 					  xtitle='Channel', ytitle='Cross-Correlation', $
 					  yrange=[min((*self.xcorrs)[use]), max((*self.xcorrs)[use])], /ystyle
+
+
 			endif
 
 
@@ -169,30 +173,53 @@ pro DCAI_StepsperOrder::frame
 			xarr = (dindgen(nsteps))*float(self.step[self.etalon]) + float(self.start[self.etalon])
 			corr = double(*self.xcorrs)
 
+			xmin = 3
 			fit_order = 3
-			fit = poly_fit(xarr[0:*], corr[0:*], fit_order, yfit = curve, /double)
-
-			;\\ PLOT THE XCORR AND FITTED CURVE
-				loadct, 39, /silent
-				wset, self.window_ids[0]
-				plot, xarr, corr, psym=1, thick=2, xtitle='Channel', ytitle='Cross-Correlation', $
-					  yrange=[min(corr), max(corr)], /ystyle
-				oplot, xarr, curve, color=50, linestyle=2, thick=2
+			fit = poly_fit(xarr[xmin:*], corr[xmin:*], fit_order, yfit = curve, /double)
 
 			dd = findgen(fit_order) + 1
 			dd = dd * fit[1:*]
 		 	dd = float(fz_roots(dd))
 	    	ddy  = poly(dd, fit)
 	    	best = where(ddy eq max(ddy))
-	    	(*self.stepsperorder)[self.current_scan] = dd[best[0]]
+	    	peak = dd[best[0]]
+	    	(*self.stepsperorder)[self.current_scan] = peak
+
+
+			;\\ PLOT THE XCORR AND FITTED CURVE
+				wset, self.window_ids[0]
+				loadct, 0, /silent
+				plot, xarr, corr, psym=1, thick=2, xtitle='Channel', ytitle='Cross-Correlation', $
+					  yrange=[min(corr), max(corr)], /ystyle, /nodata
+				oplot, xarr, corr, color = 200, psym=6, sym=.5, thick=2
+				loadct, 39, /silent
+				oplot, xarr[xmin:*], curve, color=150, thick=1.5
+				plots, [peak, peak], [min(corr), max(corr)], color = 90, thick=2
+				xyouts, peak, min(corr) + 0.34*(max(corr) - min(corr)), 'Peak: ' + string(peak, f='(e0.4)'), $
+						color = 90, align=-.1, chars=1
+
+				if self.current_scan gt 0 then begin
+					last = (*self.stepsperorder)[self.current_scan-1]
+					change = string(100.*(peak - last)/last, f='(f0.4)') + '%'
+				endif else begin
+					chage = 'N/A'
+				endelse
+
+				xyouts, peak, min(corr) + 0.22*(max(corr) - min(corr)), '!7D!3 Peak: ' + change, $
+						color = 90, align=-.1, chars=1
+
+				xyouts, peak, min(corr) + 0.1*(max(corr) - min(corr)), 'SPO: ' + string(peak/self.wavelength_nm[self.etalon], f='(f0.4)'), $
+						color = 90, align=-.1, chars=1
+
 
 			;\\ PLOT THE SPO HISTORY
 				wset, self.window_ids[1]
-				use = where(*self.stepsperorder ne 0, nuse)
+				history =  *self.stepsperorder
+				use = where(history ne 0, nuse)
 
-				plot, *self.stepsperorder, psym=1, thick=2, $
+				plot, history, psym=1, thick=2, yrange = [min(history[use]), max(history[use])], $
 					  xtitle='Scan #', ytitle='Steps/Order', /nodata
-				if nuse gt 0 then oplot, (*self.stepsperorder)[use], psym=-6, thick=2, sym=.5
+				if nuse gt 0 then oplot, history[use], psym=-6, thick=2, sym=.5
 
 
 			;\\ INCREMENT THE SCAN NUMBER
@@ -244,6 +271,8 @@ pro DCAI_StepsperOrder::frame
 		endif
 
 	endif
+
+	tvlct, ct_r, ct_g, ct_b
 
 end
 
@@ -331,6 +360,17 @@ pro DCAI_StepsperOrder::Scan, event, action=action
 
 			if args.n_channels le 0 then return
 			if self.scanning ne 1 and self.acquire_ref[0] ne 1 then begin
+
+				;\\ WEDGE THE INACTIVE ETALON
+				inactive_etalon = 1 - self.etalon
+				volts = dcai_global.settings.etalon[inactive_etalon].wedge_voltage
+				dcai_global.settings.etalon[inactive_etalon].leg_voltage = volts
+
+				command = {device:'etalon_setlegs', number:inactive_etalon, $
+								   port:dcai_global.settings.etalon[inactive_etalon].port, $
+								   voltage:dcai_global.settings.etalon[inactive_etalon].leg_voltage}
+				call_procedure, dcai_global.info.drivers, command
+
 
 				dims = size(*dcai_global.info.image, /dimensions)
 				*self.images = lonarr(dims[0], dims[1], args[0].n_channels)

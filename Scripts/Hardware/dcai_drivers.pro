@@ -17,6 +17,7 @@ end
 pro DCAI_Drivers, command
 
 	COMMON DCAI_Control, dcai_global
+	COMMON Drivers_Common, lastLegs
 
 
 	case command.device of
@@ -67,19 +68,58 @@ pro DCAI_Drivers, command
 
 		'etalon_setlegs':begin
 
+			if size(lastLegs, /type) eq 0 then lastLegs = command.voltage
+
 			tx = string(13B)
 			voltage = command.voltage > 0
 			voltage = voltage < 65535
-			hex_string = string(voltage, f='(z04)')
-			vol_string = strjoin(hex_string)
 
-			cmd_string = 'u' + string(command.number + 1, f='(i1)') + vol_string + tx
 
-			comms_wrapper, dcai_global.settings.etalon[command.number].port, dcai_global.settings.external_dll, $
-				   		   type='moxa', /write, data=cmd_string
-			wait, 0.02
-			comms_wrapper, dcai_global.settings.etalon[command.number].port, dcai_global.settings.external_dll, $
-				   		   type='moxa', /read, data=read_in
+			;\\ LOOK FOR LARGE JUMPS OF THE HIRES ETALON, BREAK DOWN INTO MANY SMALLER JUMPS
+			if dcai_global.settings.etalon[command.number].gap_mm gt 1.0 and $
+				abs(mean(lastLegs - voltage)) gt 5000 then begin
+				currentVoltage = lastLegs
+				running = 1
+
+				Andor_Camera_Driver, dcai_global.settings.external_dll, 'uFreeInternalMemory', 0, out, res, /auto_acq
+
+				while running ne 0 do begin
+
+					diff = voltage - currentVoltage
+					inc = (diff/abs(diff)) * (abs(diff) < 1000)
+					currentVoltage += inc
+
+					hex_string = string(currentVoltage, f='(z04)')
+					vol_string = strjoin(hex_string)
+					cmd_string = 'u' + string(command.number + 1, f='(i1)') + vol_string + tx
+
+					comms_wrapper, dcai_global.settings.etalon[command.number].port, dcai_global.settings.external_dll, $
+						   		   type='moxa', /write, data=cmd_string
+					wait, 0.05
+					comms_wrapper, dcai_global.settings.etalon[command.number].port, dcai_global.settings.external_dll, $
+						   		   type='moxa', /read, data=read_in
+					wait, 0.05
+					running = total(abs(currentVoltage - voltage))
+					print, total(abs(currentVoltage - voltage))
+
+				endwhile
+
+				Andor_Camera_Driver, dcai_global.settings.external_dll, 'uFreeInternalMemory', 0, out, res, /auto_acq
+
+			endif else begin
+				hex_string = string(voltage, f='(z04)')
+				vol_string = strjoin(hex_string)
+				cmd_string = 'u' + string(command.number + 1, f='(i1)') + vol_string + tx
+
+				comms_wrapper, dcai_global.settings.etalon[command.number].port, dcai_global.settings.external_dll, $
+					   		   type='moxa', /write, data=cmd_string
+				wait, 0.05
+				comms_wrapper, dcai_global.settings.etalon[command.number].port, dcai_global.settings.external_dll, $
+					   		   type='moxa', /read, data=read_in
+
+			endelse
+
+			if dcai_global.settings.etalon[command.number].gap_mm gt 1.0 then lastLegs = command.voltage
 
 		end
 
@@ -101,13 +141,26 @@ pro DCAI_Drivers, command
 					'E1R2CC150', 'E1R2CF128', 'E1R2RC231', 'E1R2RF150', $
 					'E1R3CC150', 'E1R3CF128', 'E1R3RC231', 'E1R3RF150', $
 
-					'E1L1CC092', 'E1L1CF128', 'E1L1RC232', 'E1L1RF080', $
+					'E1L1CC092', 'E1L1CF110', 'E1L1RC232', 'E1L1RF080', $
 					'E1L2CC085', 'E1L2CF129', 'E1L2RC230', 'E1L2RF154', $
 					'E1L3CC095', 'E1L3CF132', 'E1L3RC231', 'E1L3RF060', $
 
 					'E1L1DD246', 'E1L1DG60000', $
 					'E1L2DD246', 'E1L2DG60000', $
 					'E1L3DD246', 'E1L3DG60000'  ]
+
+			; ORIGINALS
+			;cmds = ['E1R1CC150', 'E1R1CF128', 'E1R1RC231', 'E1R1RF150', $
+			;		'E1R2CC150', 'E1R2CF128', 'E1R2RC231', 'E1R2RF150', $
+			;		'E1R3CC150', 'E1R3CF128', 'E1R3RC231', 'E1R3RF150', $
+            ;
+			;		'E1L1CC092', 'E1L1CF128', 'E1L1RC232', 'E1L1RF080', $
+			;		'E1L2CC085', 'E1L2CF129', 'E1L2RC230', 'E1L2RF154', $
+			;		'E1L3CC095', 'E1L3CF132', 'E1L3RC231', 'E1L3RF060', $
+            ;
+			;		'E1L1DD246', 'E1L1DG60000', $
+			;		'E1L2DD246', 'E1L2DG60000', $
+			;		'E1L3DD246', 'E1L3DG60000'  ]
 
 
 			comms_wrapper, dcai_global.settings.etalon[0].port, dcai_global.settings.external_dll, $
