@@ -55,6 +55,9 @@ pro DCAI_Control_LogCreate
 
   	COMMON DCAI_Control, dcai_global
 
+	if file_test(dcai_global.settings.paths.log, /directory) eq 0 then $
+		file_mkdir, dcai_global.settings.paths.log
+
  	log_filename = dcai_global.settings.paths.log + 'DCAILog_' + DateStringUT_YYYYMMDD_Nosep() + '.txt'
 
 	if (dcai_global.log.log_filename eq '') then begin
