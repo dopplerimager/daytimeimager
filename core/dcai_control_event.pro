@@ -42,14 +42,11 @@ pro DCAI_Control_Event, event
 							   float(dcai_global.settings.etalon[j].voltage_range[1] - $
 							   		 dcai_global.settings.etalon[j].voltage_range[0])
 
-						wset, dcai_global.gui.leg_tvids[j,0]
-						erase, 0
+						wset, dcai_global.gui.leg_tvids[j,0] & erase, 0
 						polyfill, /normal, [0,0,1,1]*frac[0], [0,1,1,0], color = 80
-						wset, dcai_global.gui.leg_tvids[j,1]
-						erase, 0
+						wset, dcai_global.gui.leg_tvids[j,1] & erase, 0
 						polyfill, /normal, [0,0,1,1]*frac[1], [0,1,1,0], color = 80
-						wset, dcai_global.gui.leg_tvids[j,2]
-						erase, 0
+						wset, dcai_global.gui.leg_tvids[j,2] & erase, 0
 						polyfill, /normal, [0,0,1,1]*frac[2], [0,1,1,0], color = 80
 					endif
 

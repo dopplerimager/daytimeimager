@@ -25,8 +25,10 @@ function DCAI_Spectrum::init
 
 		top_base = widget_base(base_left, col = 1, /base_align_left)
 			self.info_labels[0] = widget_label(top_base, font=font, value = 'No Scans Active', xs = 200)
-			self.info_labels[1] = widget_label(top_base, font=font, value = 'More Info', xs = 200)
-			self.info_labels[2] = widget_label(top_base, font=font, value = 'More Info', xs = 200)
+			self.info_labels[1] = widget_list(top_base, font=font)
+
+			;self.info_labels[1] = widget_label(top_base, font=font, value = 'More Info', xs = 200)
+			;self.info_labels[2] = widget_label(top_base, font=font, value = 'More Info', xs = 200)
 
 	;\\ TABBED/WINDOWED MODE TOGGLE
 		mode_base = widget_base(base_left, col=1, /nonexclusive)
@@ -70,16 +72,13 @@ pro DCAI_Spectrum::frame
 			n_channels = dcai_global.scan.n_channels[e_idx]
 			if channel eq 0 then _background = 0
 
-			info_string0 = 'Scan # ' + string(self.lambdas[self.lambda_scanning].current_scan + 1, f='(i0)')
-			info_string1 = 'Channel # ' + string(channel, f='(i0)') + '/' + string(n_channels, f='(i0)')
+			list = ['Scan # ' + string(self.lambdas[self.lambda_scanning].current_scan + 1, f='(i0)'), $
+					'Channel # ' + string(channel, f='(i0)') + '/' + string(n_channels, f='(i0)')]
 
+			widget_control, set_value = list, self.info_labels[1]
 		endif else begin
-			info_string0 = ' '
-			info_string1 = ' '
+			widget_control, set_value = [''], self.info_labels[1]
 		endelse
-		widget_control, set_value = info_string0, self.info_labels[1]
-		widget_control, set_value = info_string1, self.info_labels[2]
-
 
 	;\\ IF THERE IS NO ACTIVE SCANNER, THEN RETURN
 		if id eq -1 or self.scanning eq 2 then return
@@ -820,8 +819,6 @@ pro DCAI_Spectrum::EditSpectrum, event
 	widget_control, get_uval=uval, event.id
 	widget_control, get_val=val, event.id
 
-
-
 	case uval.field of
 		'channels':begin
 			;\\ DONT ALLOW CHANNELS TO BE CHANGED
@@ -978,7 +975,8 @@ function DCAI_Spectrum::uid, args=args
 	endif else begin
 		;\\ BUILD UID FROM THE GIVEN INFO
 		;\\ args = {wavelength:0.0, etalons:intarr[], ...}
-		uid = 'spectrum_' + string(args.wavelength*100, f='(i04)') + '_' + $
+		uid = 'spectrum_' + $
+			  string(args.wavelength*100, f='(i04)') + '_' + $
 			  strjoin(string(args.etalons, f='(i01)'), '') + '_' + $
 			  string(args.n_zones, f='(i04)')
 		return, uid
