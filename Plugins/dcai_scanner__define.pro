@@ -168,6 +168,8 @@ function DCAI_Scanner::init
 				btn = widget_button(btn_base, value='UnPause', font=font, uval={tag:'plugin_event', object:self, method:'Scan', action:'UnPause', type:'Wave'})
 
 			slider_base = widget_base(wavelength_base, col=1)
+				if (self.wave_start eq self.wave_stop) then self.wave_stop += .1
+
 				label = widget_label(slider_base, value='Manual Wavelength Scan', font=font+'*Bold')
 				label = widget_label(slider_base, value=string(self.wave_start, f='(f0.5)'), font=font+'*Bold')
 				sub_base = widget_base(slider_base, col=3)
@@ -343,14 +345,15 @@ pro DCAI_Scanner::WaveEdit, event
 						   wavelength_range_nm:[self.wave_start, self.wave_stop]}
 
 					success = DCAI_ScanControl('start', 'wavelength', arg, /delayed_start)
-				endif
-				arg = replicate({etalon:0, channel:0L}, netalons)
-				for k = 0, netalons - 1 do begin
-					arg[k].etalon = k
-					arg[k].channel = 0
-				endfor
-				success = DCAI_ScanControl('increment', 'dummy', arg)
 
+					arg = replicate({etalon:0, channel:0L}, netalons)
+					for k = 0, netalons - 1 do begin
+						arg[k].etalon = k
+						arg[k].channel = 0
+					endfor
+					success = DCAI_ScanControl('increment', 'dummy', arg)
+
+				endif
 
 			;\\ UPDATE THE CURRENT WAVELENGTH
 			widget_control, set_value=string(self.wave_start, f='(f0.5)'), self.wave_slider_ids[3]

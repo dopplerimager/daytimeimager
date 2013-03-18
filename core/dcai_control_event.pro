@@ -196,7 +196,7 @@ pro DCAI_Control_Event, event
 									 '', $
 									 'Scanning: ' + strjoin(string(dcai_global.scan.scanning, f='(i0)'), ', '), $
 				                     'Channel: ' + strjoin(string(dcai_global.scan.channel, f='(i0)') + '/' + string(dcai_global.scan.n_channels, f='(i0)'), ', '), $
-				                     'Step Size: ' + strjoin(string(dcai_global.scan.step_size, f='(i0)'), ', '), $
+				                     'Step Size: ' + strjoin(string(dcai_global.scan.step_size, f='(f0.2)'), ', '), $
 				                     'Steps/Order/nm: ' + strjoin(string(dcai_global.settings.etalon.steps_per_order, f='(f0.4)'), ', ')]
 
 						;\\ ACTIVE PLUGIN INFO

@@ -371,7 +371,7 @@ pro DCAI_Control_Main, settings_file=settings_file, $		;\\ required
 				 	channel:[-1,-1], $ 		;\\ The current scan channel, or -1 if not scanning, for both etalons
 				 	offset:lonarr(2), $ 	;\\ Start nominal voltages for each etalon
 				 	n_channels:[-1,-1], $ 	;\\ The current number of scan channels, set by the object which initiated the scan
-				 	step_size:[0L,0L], $ 	;\\ For normal scans, this will be the scaled steps_per_order, for manual scans it is
+				 	step_size:[0D,0D], $ 	;\\ For normal scans, this will be the scaled steps_per_order, for manual scans it is
 											;\\ set manually
 				 	center_wavelength:replicate({view_wavelength_nm:0.0, center_wavelength_nm:0.0, $
 				 								 home_voltage:0L, fsr:0.0, center:[0,0]}, 2, 10) $

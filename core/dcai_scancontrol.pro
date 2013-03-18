@@ -84,7 +84,7 @@ function DCAI_ScanControl, command, scan_type, argument, $
 
 
 					if scan_type eq 'normal' then begin
-						dcai_global.scan.step_size[args.etalon] = round(float(dcai_global.settings.etalon[args.etalon].steps_per_order * args.wavelength_nm) / float(args.n_channels))
+						dcai_global.scan.step_size[args.etalon] = (float(dcai_global.settings.etalon[args.etalon].steps_per_order * args.wavelength_nm) / float(args.n_channels))
 						dcai_global.scan.offset[args.etalon] = args.start_voltage
 						dcai_global.scan.type = 'normal'
 
@@ -152,21 +152,15 @@ function DCAI_ScanControl, command, scan_type, argument, $
 					order_stp = lambda_stp / cws[etz_idx,cws_idx].fsr
 					voltage_stp = order_stp * etz.steps_per_order * dcai_global.scan.wavelength_nm
 					dcai_global.scan.step_size[etz_idx] = voltage_stp
-					print, 'Voltage Step Size: ', voltage_stp
 
 					;\\ CALCULATE WHERE THE SCAN NEEDS TO START
 					del_lambda = argument.wavelength_range_nm[0] - cws[etz_idx,cws_idx].center_wavelength_nm
 					del_orders = (del_lambda / cws[etz_idx,cws_idx].fsr) mod 1    					;\\ CONVERT TO # ORDERS
 					del_volts = del_orders * etz.steps_per_order * dcai_global.scan.wavelength_nm 	;\\ CONVERT TO 'VOLTAGE'
 
-
-
 					;\\ SET THE STARTING NOMINAL VOLTAGE
 					home_volts = cws[etz_idx,cws_idx].home_voltage
 					dcai_global.scan.offset[etz_idx] = home_volts + del_volts
-					print, home_volts + del_volts
-
-
 				endfor
 
 			endelse

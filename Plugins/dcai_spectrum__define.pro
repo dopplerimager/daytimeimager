@@ -476,6 +476,9 @@ pro DCAI_Spectrum::UserNewSpectrum, event
 		widget_edit_field, dlg, label = 'Min SNR', font = dcai_global.gui.font, $
 					   	   ids = minsnr_id, edit_xsize = 10, lab_xsize = 100, start_value = '1200', /column
 
+		widget_edit_field, dlg, label = 'Filename Format', font = dcai_global.gui.font, $
+					   	   ids = filename_id, edit_xsize = 50, lab_xsize = 100, start_value = 'Y$_d$_n$', /column
+
 		zmap_base = widget_base(dlg, col=2)
 
 			;\\ PICK A DEFAULT ZONEMAP
@@ -506,6 +509,7 @@ pro DCAI_Spectrum::UserNewSpectrum, event
 							   		   minscans_id:minscan_id.text, maxscans_id:maxscan_id.text, $
 							   		   minsnr_id:minsnr_id.text, $
 							   		   start_lambda_id:start_lambda_id.text, stop_lambda_id:stop_lambda_id.text, $
+							   		   filename_id:filename_id.text, $
 							   		   zonemap_id:zonemap_id.text, $
 							   		   button_ids:buttons})
 
@@ -529,7 +533,7 @@ end
 
 	pro DCAI_Spectrum::UserNewSpectrum_OK, event
 
-		widget_control, get_uval = uval, event.id
+		widget_control, get_uval  = uval, event.id
 		widget_control, get_value = wavelength, uval.wavelength_id
 		widget_control, get_value = zonemap, uval.zonemap_id
 		widget_control, get_value = minscans, uval.minscans_id
@@ -538,6 +542,7 @@ end
 		widget_control, get_value = stop_lambda, uval.stop_lambda_id
 		widget_control, get_value = minsnr, uval.minsnr_id
 		widget_control, get_value = channels, uval.channels_id
+		widget_control, get_value = fname_format, uval.filename_id
 
 		etalons = replicate(0, n_elements(uval.button_ids))
 		for i = 0, n_elements(uval.button_ids)-1 do begin
@@ -558,7 +563,8 @@ end
 				start_lambda:(fix(start_lambda, type=4))[0], $
 				stop_lambda:(fix(stop_lambda, type=4))[0], $
 				zonemap:zonemap, $
-				etalons:etalons}
+				etalons:etalons, $
+				filename_format:fname_format}
 
 		self->NewSpectrum, info
 	end
@@ -577,7 +583,6 @@ pro DCAI_Spectrum::NewSpectrum, info
 	if self.n_lambdas ge 20 then return
 	if total(info.etalons) eq 0 then return	;\\ NOT USING ANY ETALONS!!
 
-
 	;\\ TRY TO BUILD THE ZONEMAP
 	fringe_center = DCAI_ScanControl('getfringecenter', 'dummy', 0)
 	zonemap = self->BuildZonemap(info.zonemap, image_dims, fringe_center)
@@ -586,7 +591,6 @@ pro DCAI_Spectrum::NewSpectrum, info
 				  ', got error ' + zonemap.error
 		return
 	endif
-
 
 	;\\ CHECK TO SEE IF THIS WAVELENGTH, ETALON COMBO, AND ZONEMAP IS ALREADY PRESENT
 	uid = self->uid(arg={wavelength:info.wavelength, etalons:info.etalons, n_zones:zonemap.n_zones})
@@ -603,6 +607,10 @@ pro DCAI_Spectrum::NewSpectrum, info
 	self.n_lambdas ++
 	self.lambdas[index].wavelength = info.wavelength
 
+	;\\ CREATE A FILENAME FROM THE FORMAT
+	if info.filename_format ne '' then begin
+		self.lambdas[index].filename = dt_tm_fromjs(dt_tm_tojs(systime(/ut)), format=info.filename_format)
+	endif
 
 	;\\ DO OTHER SETUP STUFF HERE
 	self.lambdas[index].uid = uid
@@ -614,6 +622,7 @@ pro DCAI_Spectrum::NewSpectrum, info
 	self.lambdas[index].wavelength_range = [info.start_lambda, info.stop_lambda]
 	self.lambdas[index].etalons = info.etalons
 	self.lambdas[index].zonemap = ptr_new(zonemap.zonemap)
+	self.lambdas[index].filename_format = info.filename_format
 	self.lambdas[index].zone_info = ptr_new(zonemap)
 	self.lambdas[index].num_exposures = 1
 
@@ -676,7 +685,6 @@ pro DCAI_Spectrum::NewSpectrum, info
 										 self.lambdas[index].n_spectral_channels])
 
 
-
 		;\\ SINCE EACH SPECTRAL BIN IN EACH ZONE'S SPECTRUM CAN HAVE A DIFFERENT NUMBER OF PIXELS CONTRIBUTING
 		;\\ TO IT, CALCULATE A NORMALIZING MAP FOR EACH ZONE (n_zones x n_spectral_channels)
 		norm = lonarr(self.lambdas[index].n_zones, self.lambdas[index].n_spectral_channels)
@@ -700,6 +708,15 @@ pro DCAI_Spectrum::NewSpectrum, info
 	self.lambdas[index].snr_history = ptr_new(/alloc)
 	self.lambdas[index].bgr_history = ptr_new(/alloc)
 	self.lambdas[index].accumulated_image = ptr_new(/alloc)
+
+	;\\ CREATE THE DATA FILE
+	if self.lambdas[index].filename ne '' then begin
+		self->CreateDataFile, index, errcode=errcode
+		if errcode ne 'ok' then begin
+			DCAI_Log, 'ERROR: Spectrum object could not create data file ' + self.lambdas[index].filename + ': ' + errcode
+			self->RemoveSpectrum, 0, index=index, /no_confirm
+		endif
+	endif
 
 
 	;\\ BUILD THE WIDGETS
@@ -729,11 +746,12 @@ pro DCAI_Spectrum::BuildWidgets, lambda_index
 
 	w_dims = self.lambdas[lambda_index].window_dims
 	draw_base = widget_base(sub_base, col = 1)
+		filename_label = widget_label(draw_base, value = 'Filename: ' + self.lambdas[lambda_index].filename, $
+								  font = dcai_global.gui.font + '*Bold', /align_left)
 		draw0 = widget_draw(draw_base, xs=w_dims[0,0], ys=w_dims[0,1])
-
-		draw_base_right = widget_base(draw_base, col = 2)
-			draw1 = widget_draw(draw_base_right, xs=w_dims[1,0], ys=w_dims[1,1], /align_center)
-			draw2 = widget_draw(draw_base_right, xs=w_dims[2,0], ys=w_dims[2,1], /align_center)
+		draw_base_2 = widget_base(draw_base, col = 2)
+			draw1 = widget_draw(draw_base_2, xs=w_dims[1,0], ys=w_dims[1,1], /align_center)
+			draw2 = widget_draw(draw_base_2, xs=w_dims[2,0], ys=w_dims[2,1], /align_center)
 
 	info_base = widget_base(sub_base, col = 1)
 
@@ -1053,6 +1071,21 @@ function DCAI_Spectrum::BuildZonemap, filename, dimensions, center
 end
 
 
+;\\ CREATE A DATA FILE
+pro DCAI_Spectrum::CreateDataFile, lambda_index, errcode=errcode
+
+	print, self.lambdas[lambda_index].filename
+	errcode = 'ok'
+
+end
+
+
+;\\ SAVE LATEST DATA FOR GIVEN SPECTRUM OBJECT
+pro DCAI_Spectrum::SaveExposure, lambda_index
+
+end
+
+
 ;\\ CLEANUP
 pro DCAI_Spectrum::Cleanup
 
@@ -1109,7 +1142,9 @@ pro DCAI_Spectrum__define
 				  phasemap:ptr_new(/alloc), $	;\\ Dimensions will be [xpixels, ypixels]
 				  accumulated_image:ptr_new(/alloc), $ ;\\ Dimensions will be [xpixels, ypixels]
 				  snr_history:ptr_new(/alloc), $ ;\\ Dimensions will be [nscans]
-				  bgr_history:ptr_new(/alloc) $  ;\\ Dimensions will be [nscans]
+				  bgr_history:ptr_new(/alloc), $  ;\\ Dimensions will be [nscans]
+				  filename_format:'', $
+				  filename:'' $
 				 }
 
 	state = {DCAI_Spectrum, tab_base:0L, $
