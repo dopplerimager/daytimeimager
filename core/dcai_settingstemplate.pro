@@ -51,6 +51,7 @@ function DCAI_SettingsTemplate
 			 plugin_settings:dir + '..\Plugins\Plugin_Settings\', $
 			 screen_capture:dir + '..\Plugins\ScreenCaps\', $
 			 zonemaps:dir + '..\Scripts\Zonemap\', $
+			 data:dir + '..\Data\', $
 			 editable:['log', $
 			 			'persistent', $
 			 			'plugin_base', $

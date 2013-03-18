@@ -226,7 +226,6 @@ pro DCAI_Spectrum::frame
 			self.lambdas[id].current_scan ++
 
 
-
 		;\\ CHECK TO SEE IF THE EXPOSURE IS FINISHED
 			exp_finished = 0
 			if self.lambdas[id].current_scan ge self.lambdas[id].min_scans then begin ;\\ Make sure the minimum number of scans have been done
@@ -249,6 +248,7 @@ pro DCAI_Spectrum::frame
 
 			if exp_finished eq 1 then begin
 
+				self->SaveExposure, id
 
 				if self.lambdas[id].scan_type eq 'wavelength' then begin
 					spectra = float(reform((*self.lambdas[id].spectra)))
@@ -269,7 +269,7 @@ pro DCAI_Spectrum::frame
 
 				self.lambdas[id].current_exposure ++
 
-				;\\ IF MULTIPLE EXPOSURES HAVE BEEN SPECIFIED, KEEP GOING UNTIL THEY ARE COMPLETE
+				;\\ IF MULTIPLE EXPOSURES HAVE BEEN SPECIFIED, KEEP GOING UNTIL THEY ARE COMPLETE - TODO when to reset this value?
 				if self.lambdas[id].current_exposure lt self.lambdas[id].num_exposures then begin
 					self->Scan, 0, command = {index:id, action:'start', restart:0}
 				endif
@@ -341,6 +341,7 @@ pro DCAI_Spectrum::Scan, event, command=command
 				*self.lambdas[id].accumulated_image = ulonarr(image_dims[0], image_dims[1])
 				*self.lambdas[id].snr_history = fltarr(self.lambdas[id].max_scans)
 				*self.lambdas[id].bgr_history = fltarr(self.lambdas[id].max_scans)
+				self.lambdas[id].scan_start_time = dt_tm_tojs(systime(/ut))
 			endif
 
 			;\\ UPDATE WIDGET INFO
@@ -626,6 +627,7 @@ pro DCAI_Spectrum::NewSpectrum, info
 	self.lambdas[index].zone_info = ptr_new(zonemap)
 	self.lambdas[index].num_exposures = 1
 
+
 	;\\ MAKE SURE WE HAVE ALL THE PHASEMAPS REQUIRED
 	for k = 0, n_elements(etalons) - 1 do begin
 		if info.etalons[k] eq 1 and size(*dcai_global.info.phasemap[k], /n_dimensions) eq 0 then begin
@@ -709,12 +711,20 @@ pro DCAI_Spectrum::NewSpectrum, info
 	self.lambdas[index].bgr_history = ptr_new(/alloc)
 	self.lambdas[index].accumulated_image = ptr_new(/alloc)
 
+	;\\ DO THIS HERE SO WE HAVE CORRECT DIMENSIONS FOR CREATING DATA FILE
+	image_dims = size(*dcai_global.info.image, /dimensions)
+	*self.lambdas[index].spectra = ulonarr(self.lambdas[index].n_zones, self.lambdas[index].n_spectral_channels)
+	*self.lambdas[index].accumulated_image = ulonarr(image_dims[0], image_dims[1])
+	*self.lambdas[index].snr_history = fltarr(self.lambdas[index].max_scans)
+	*self.lambdas[index].bgr_history = fltarr(self.lambdas[index].max_scans)
+
 	;\\ CREATE THE DATA FILE
 	if self.lambdas[index].filename ne '' then begin
 		self->CreateDataFile, index, errcode=errcode
 		if errcode ne 'ok' then begin
 			DCAI_Log, 'ERROR: Spectrum object could not create data file ' + self.lambdas[index].filename + ': ' + errcode
 			self->RemoveSpectrum, 0, index=index, /no_confirm
+			return
 		endif
 	endif
 
@@ -1074,14 +1084,60 @@ end
 ;\\ CREATE A DATA FILE
 pro DCAI_Spectrum::CreateDataFile, lambda_index, errcode=errcode
 
-	print, self.lambdas[lambda_index].filename
-	errcode = 'ok'
+	COMMON DCAI_Control, dcai_global
 
+	data_path = dcai_global.settings.paths.data
+	filename = data_path + '\' + self.lambdas[lambda_index].filename
+
+	header = {site:'', $
+			  site_code:'', $
+			  latitude:0.0, $
+			  longitude:0.0, $
+			  operator:'', $
+			  comment:'', $
+			  software:'' }
+
+	data = self->CreateDataStruct(lambda_index)
+	dcai_write_netcdf, filename, header=header, data=data, /new, errcode=errcode
 end
 
 
 ;\\ SAVE LATEST DATA FOR GIVEN SPECTRUM OBJECT
 pro DCAI_Spectrum::SaveExposure, lambda_index
+	data = self->CreateDataStruct(lambda_index)
+	dcai_write_netcdf, filename, data=data, errcode=errcode
+end
+
+;\\ SAVE LATEST DATA FOR GIVEN SPECTRUM OBJECT
+function DCAI_Spectrum::CreateDataStruct, lambda_index
+
+	COMMON DCAI_Control, dcai_global
+
+	l = self.lambdas[lambda_index]
+	xy = size(*dcai_global.info.image, /dimensions)
+
+	return, { $
+		spectra:*l.spectra, $
+		acc_im:*l.accumulated_image, $
+		wavelength:0.0, $
+		wavelength_range:l.wavelength_range, $
+		wavelength_range_full:l.wavelength_range_full, $
+		scan_channels:l.n_scan_channels, $
+		spectral_channels:l.n_spectral_channels, $
+		x_pixels:xy[0], $
+		y_pixels:xy[1], $
+		x_bin:dcai_global.info.camera_settings.imagemode.xbin, $
+		y_bin:dcai_global.info.camera_settings.imagemode.ybin, $
+		x_center:0, $
+		y_center:0, $
+		cam_temp:dcai_global.info.camera_settings.curTemp, $
+		cam_gain:dcai_global.info.camera_settings.emgain_use, $
+		cam_exptime:dcai_global.info.camera_settings.expTime_use, $
+		nscans:l.current_scan, $
+		start_time:l.scan_start_time, $
+		end_time:dt_tm_tojs(_systime(/ut)), $
+		etalon_gap:dcai_global.settings.etalon.gap_mm $
+	}
 
 end
 
@@ -1134,6 +1190,7 @@ pro DCAI_Spectrum__define
 				  current_scan:0, $ 			;\\ The current scan number
 				  num_exposures:0, $ 			;\\ Number of exposures to do consecutively
 				  current_exposure:0, $ 		;\\ The current exposure number
+				  scan_start_time:0D, $		    ;\\ Scan start time in UT Julian Seconds
 				  sizes:intarr(4), $			;\\ Information for the spectra accumulator
 				  spectra:ptr_new(/alloc), $	;\\ Dimensions will be [zones, spectral channels]
 				  zonemap:ptr_new(/alloc), $	;\\ Dimensions will be [xpixels, ypixels]
