@@ -72,6 +72,7 @@ pro DCAI_Spectrum::frame
 
 			info_string0 = 'Scan # ' + string(self.lambdas[self.lambda_scanning].current_scan + 1, f='(i0)')
 			info_string1 = 'Channel # ' + string(channel, f='(i0)') + '/' + string(n_channels, f='(i0)')
+
 		endif else begin
 			info_string0 = ' '
 			info_string1 = ' '
@@ -100,8 +101,9 @@ pro DCAI_Spectrum::frame
 
 
 	;\\ UPDATE ACCUMULATED IMAGE
-
 		*self.lambdas[id].accumulated_image += image
+
+		zmp = *self.lambdas[id].zonemap
 		if size(_background, /type) eq 0 then begin
 			_background = median(image)
 		endif else begin
@@ -125,7 +127,7 @@ pro DCAI_Spectrum::frame
 		;\\ PLOT ZONE BOUNDARIES
 			plot_zone_bounds, wdim[0], (*self.lambdas[id].zone_info).rads, $
 									   (*self.lambdas[id].zone_info).secs, $
-									   thick=1, color=255, ctable=0, $
+									   thick=1, color=150, ctable=0, $
 									   offset=((*self.lambdas[id].zone_info).center - (idim/2)) * (float(wdim)/idim)
 
 		;\\ CALCULATE BACKGROUND AND SNR, AND PLOT SPECTRA
@@ -169,7 +171,7 @@ pro DCAI_Spectrum::frame
 						norm = float(reform((*self.lambdas[id].normmap)[z, *]))
 					endelse
 
-				;\\ snr calculation
+				;\\ snr calculation (won't work during the day)
 				 	use = where(norm ne 0, n_chann) ;\\ spectral bins which contain signal for this zone
 				    bgr  += spec_dims[1]*min(smooth(spx[use],7))
 				    power = (abs(fft(spx[use])))^2
@@ -191,13 +193,18 @@ pro DCAI_Spectrum::frame
 					endelse
 
 					;spx -= smooth(spx, n_elements(spx)/3., /edge)
-					fit = linfit(findgen(n_elements(spx)), spx)
-					spx -= fit[1]*findgen(n_elements(spx))
+					;fit = linfit(findgen(n_elements(spx)), spx)
+					if self.lambdas[id].scan_type eq 'wavelength' then begin
+						fit = poly_fit(findgen(n_elements(spx)), spx, 2, yfit=curve)
+						spx -= curve
+					endif
 					spx -= min(spx)
 
 					plot, xaxis[use_axis], xaxis[use_axis], color = 255, /nodata, yrange = [0, max(spx)], $
 						  /noerase, xtickname=blank, xstyle=5, ystyle=5, $
 						  pos=[zc[z,0],zc[z,1],zc[z,0],zc[z,1]] + [-.07,-.07,.07,.07]
+
+					xyouts, zc[z,0], zc[z,1], string(z, f='(i0)'), color = 90, /normal, align=.5
 					oplot, xaxis[use], spx
 
 					;\\ TEMPORARY - FOR TESTING
@@ -243,6 +250,8 @@ pro DCAI_Spectrum::frame
 
 			if exp_finished eq 1 then begin
 
+
+				if self.lambdas[id].scan_type eq 'wavelength' then begin
 					spectra = float(reform((*self.lambdas[id].spectra)))
 					normalize = float(reform((*self.lambdas[id].normmap)))
 					wavelength_full_range = self.lambdas[id].wavelength_range_full
@@ -257,7 +266,7 @@ pro DCAI_Spectrum::frame
 							scan_channels:scan_channels, $
 							background:_background}
 					save, filename='c:\users\daytimeimager\Spex_' + dt_tm_fromjs(dt_tm_tojs(systime()), format='Y$_0n$_0d$_h$_m$_s$') + '.idlsave', data
-
+				endif
 
 				self.lambdas[id].current_exposure ++
 
@@ -810,36 +819,16 @@ pro DCAI_Spectrum::EditSpectrum, event
 							self.lambdas[uval.index].edit_ids.n_channels
 		end
 		'minscans':begin
-			if uval.index eq self.lambda_scanning then begin
-				widget_control, set_value=string(self.lambdas[uval.index].min_scans, f='(i0)'), $
-								self.lambdas[uval.index].edit_ids.minscans
-			endif else begin
-				self.lambdas[uval.index].min_scans = fix(val, type=3)
-			endelse
+			self.lambdas[uval.index].min_scans = fix(val, type=3)
 		end
 		'maxscans':begin
-			if uval.index eq self.lambda_scanning then begin
-				widget_control, set_value=string(self.lambdas[uval.index].max_scans, f='(i0)'), $
-								self.lambdas[uval.index].edit_ids.maxscans
-			endif else begin
-				self.lambdas[uval.index].max_scans = fix(val, type=3)
-			endelse
+			self.lambdas[uval.index].max_scans = fix(val, type=3)
 		end
 		'minsnr':begin
-			if uval.index eq self.lambda_scanning then begin
-				widget_control, set_value=string(self.lambdas[uval.index].min_snr, f='(i0)'), $
-								self.lambdas[uval.index].edit_ids.minsnr
-			endif else begin
-				self.lambdas[uval.index].min_snr = fix(val, type=3)
-			endelse
+			self.lambdas[uval.index].min_snr = fix(val, type=3)
 		end
 		'numexposures':begin
-			if uval.index eq self.lambda_scanning then begin
-				widget_control, set_value=string(self.lambdas[uval.index].num_exposures, f='(i0)'), $
-								self.lambdas[uval.index].edit_ids.numexposures
-			endif else begin
-				self.lambdas[uval.index].num_exposures = fix(val, type=3)
-			endelse
+			self.lambdas[uval.index].num_exposures = fix(val, type=3)
 		end
 
 		else:

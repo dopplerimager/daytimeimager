@@ -111,11 +111,11 @@ pro DCAI_ScanCalibrate::frame
 	loadct, 0, /silent
 	plots, (self.center[0] + self.radius*cos(!DTOR*findgen(722)/2.))*self.zoom, $
 		   (self.center[1] + self.radius*sin(!DTOR*findgen(722)/2.))*self.zoom, $
-		   /device, color = 0, thick = 3
+		   /device, color = 0, thick = 1
 	plots, (self.center[[0,0]] + [-self.radius, self.radius])*self.zoom, self.center[[1,1]]*self.zoom, $
-		   /device, color = 0, thick = 3
+		   /device, color = 0, thick = 1
 	plots, self.center[[0,0]]*self.zoom, (self.center[[1,1]] + [-self.radius, self.radius])*self.zoom, $
-		   /device, color = 0, thick = 3
+		   /device, color = 0, thick = 1
 
 
 end
@@ -162,25 +162,50 @@ pro DCAI_ScanCalibrate::Calibrate, event
 			;\\ CALCULATE FREE SPECTRAL RANGE (IN NM)
 			fsr = (lambda*1E-9*lambda*1E-9) / (2.*etz.refractive_index*etz.gap_mm*1E-3)
 			fsr /= 1E-9
-
-			;\\ WRAP THE PHASEMAP
 			pmap /= lambda
-			pmap = (pmap mod 1)
 
-			;\\ CREATE A DISTANCE MAP FROM SELECTED CENTER
-			dims = size(pmap, /dimensions)
-			dist_circle, dist_map, dims, self.center[0], self.center[1]
+			type = 1
 
-			;\\ CALCULATE ORDER AT CENTER AND MEAN ORDER AT SELECTED RADIUS
-			pts = where(dist_map lt 3, npts)
-			;center_order = median(pmap[pts])
-			center_order = pmap[self.center[0], self.center[1]]
-			pts = where(dist_map gt .98*self.radius and dist_map lt 1.02*self.radius, npts)
-			radius_order = median(pmap[pts])
+			if type eq 0 then begin
+				;\\ WRAP THE PHASEMAP
+				pmap = (pmap mod 1)
+
+				;\\ CREATE A DISTANCE MAP FROM SELECTED CENTER
+				dims = size(pmap, /dimensions)
+				dist_circle, dist_map, dims, self.center[0], self.center[1]
+
+				;\\ CALCULATE ORDER AT CENTER AND MEAN ORDER AT SELECTED RADIUS
+				pts = where(dist_map lt 3, npts)
+				center_order = pmap[self.center[0], self.center[1]]
+				pts = where(dist_map gt .98*self.radius and dist_map lt 1.02*self.radius, npts)
+				radius_order = median(pmap[pts])
+
+			endif else begin
+
+				fit = sfit(pmap, 2, /max_degree, kx = coeffs)
+
+				pmap = fit mod 1
+				dims = size(pmap, /dimensions)
+				dist_circle, dist_map, dims, self.center[0], self.center[1]
+				pts = where(dist_map lt 3, npts)
+				center_order = pmap[self.center[0], self.center[1]]
+				pts = where(dist_map gt .98*self.radius and dist_map lt 1.02*self.radius, npts)
+				radius_order = median(pmap[pts])
+
+
+				;n = sqrt((float(self.radius)*float(self.radius))/2.)
+				;radius_order = (coeffs[0] + coeffs[1]*n + coeffs[2]*n*n + $
+				;			    coeffs[3]*n + coeffs[5]*n*n ) mod 1
+
+				print, 'Center order: ', center_order
+				print, 'Radius order: ', radius_order
+
+
+			endelse
 
 
 			;\\ CONVERT ORDER DIFFERENCE TO WAVELENGTH
-			del_lambda = (center_order - radius_order)*fsr
+			del_lambda = float(center_order - radius_order)*fsr
 
 			;\\ CALCULATE CENTRAL WAVELENGTH
 			center_lambda = lambda + abs(del_lambda)

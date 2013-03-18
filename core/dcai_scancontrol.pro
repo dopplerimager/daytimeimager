@@ -151,6 +151,7 @@ function DCAI_ScanControl, command, scan_type, argument, $
 					order_stp = lambda_stp / cws[etz_idx,cws_idx].fsr
 					voltage_stp = order_stp * etz.steps_per_order * dcai_global.scan.wavelength_nm
 					dcai_global.scan.step_size[etz_idx] = voltage_stp
+					print, 'Voltage Step Size: ', voltage_stp
 
 					;\\ CALCULATE WHERE THE SCAN NEEDS TO START
 					del_lambda = argument.wavelength_range_nm[0] - cws[etz_idx,cws_idx].center_wavelength_nm
