@@ -2,53 +2,6 @@
 @dcai_script_utilities
 @sdi_synth_fringes
 
-pro foo
-
-	COMMON DCAI_Control, dcai_global
-
-
-	pmap0 = *dcai_global.info.phasemap[0]
-	pmap1 = *dcai_global.info.phasemap[1]
-
-
-	pmap0 -= min(pmap0)
-	pmap1 -= min(pmap1)
-
-	ratio = pmap1/pmap0
-	ratio = ratio > 0.001
-	ratio = ratio < 10
-
-
-	slice0 = pmap0[*,250]
-	slice1 = pmap1[*,250]
-
-	fit0 = poly_fit(findgen(501), slice0, 2, yfit = curve0)
-	fit1 = poly_fit(findgen(501), slice1, 2, yfit = curve1)
-
-	print, fit0
-	print, fit1
-	print, fit1[2] / fit0[2]
-
-
-
-	window, 0
-	loadct, 0
-
-	plot, curve1
-	oplot, slice1
-	oplot, curve0
-	oplot, slice0
-
-	;tv, bytscl(ratio, min=0, max=.2)
-
-	;plot, pmap0[*,250]/pmap1[*,250]
-
-	;plot, pmap0[*,250]
-	;oplot, pmap1[*,250]
-
-end
-
-
 ;\\ EVENT HANDLER FOR THE DCAI GUI
 pro DCAI_Control_Event, event
 
@@ -75,22 +28,32 @@ pro DCAI_Control_Event, event
 
 
 			;\\ UPDATE ETALON LEG VOLTAGE INDICATORS
+				COMMON DCAI_Control_Event_LegDraw, __lastLegs
+
+				if size(__lastLegs, /type) eq 0 then __lastLegs = [[0L,0L,0L],[0L,0L,0L]]
+
 				tvlct, ctb_r, ctb_g, ctb_b, /get
 				loadct, 39, /silent
 				for j = 0, n_elements(dcai_global.settings.etalon) - 1 do begin
-					frac = dcai_global.settings.etalon[j].leg_voltage / $
-						   float(dcai_global.settings.etalon[j].voltage_range[1] - $
-						   		 dcai_global.settings.etalon[j].voltage_range[0])
 
-					wset, dcai_global.gui.leg_tvids[j,0]
-					erase, 0
-					polyfill, /normal, [0,0,1,1]*frac[0], [0,1,1,0], color = 80
-					wset, dcai_global.gui.leg_tvids[j,1]
-					erase, 0
-					polyfill, /normal, [0,0,1,1]*frac[1], [0,1,1,0], color = 80
-					wset, dcai_global.gui.leg_tvids[j,2]
-					erase, 0
-					polyfill, /normal, [0,0,1,1]*frac[2], [0,1,1,0], color = 80
+					if total(abs(dcai_global.settings.etalon[j].leg_voltage - __lastLegs[*,j])) ne 0 then begin
+
+						frac = dcai_global.settings.etalon[j].leg_voltage / $
+							   float(dcai_global.settings.etalon[j].voltage_range[1] - $
+							   		 dcai_global.settings.etalon[j].voltage_range[0])
+
+						wset, dcai_global.gui.leg_tvids[j,0]
+						erase, 0
+						polyfill, /normal, [0,0,1,1]*frac[0], [0,1,1,0], color = 80
+						wset, dcai_global.gui.leg_tvids[j,1]
+						erase, 0
+						polyfill, /normal, [0,0,1,1]*frac[1], [0,1,1,0], color = 80
+						wset, dcai_global.gui.leg_tvids[j,2]
+						erase, 0
+						polyfill, /normal, [0,0,1,1]*frac[2], [0,1,1,0], color = 80
+					endif
+
+					__lastLegs[*,j] = dcai_global.settings.etalon[j].leg_voltage
 				endfor
 				tvlct, ctb_r, ctb_g, ctb_b
 
@@ -365,119 +328,120 @@ pro DCAI_Control_Event, event
 
 		endif
 
-	endif
+	endif else begin
 
 
-	if size(uval, /type) eq 8 then begin
+		if size(uval, /type) eq 8 then begin
 
-		tag = where(tag_names(uval) eq 'TAG', tag_yn)
-		if tag_yn eq 0 then return
+			tag = where(tag_names(uval) eq 'TAG', tag_yn)
+			if tag_yn eq 0 then return
 
-		case uval.tag of
+			case uval.tag of
 
-			;\\ STOP/START THE SCHEDULE FILE EXECUTION
-			'stop_start_button': begin
-         		DCAI_Control_ScriptStartStop
-			end
+				;\\ STOP/START THE SCHEDULE FILE EXECUTION
+				'stop_start_button': begin
+	         		DCAI_Control_ScriptStartStop
+				end
 
-			;\\ LOAD UP A NEW SCRIPT
-			'load_script_button': begin
-				dcai_global.info.current_command_index = -1
-				fname = dialog_pickfile(/read)
-				script_name = file_basename(strcompress(fname, /remove_all))
-				spl = strsplit(script_name, '.', /extract)
-				script_name = spl[0]
-				res = execute('resolve_routine, /is_function, "' + script_name + '"')
-				if res eq 1 then begin
-					dcai_global.info.schedule_script = script_name
-					widget_control, dcai_global.gui.script_label, set_value = 'Current Schedule: ' + script_name
-					DCAI_Log, 'Loaded new script: ' + script_name
-				endif else begin
-					DCAI_Log, 'Unable to load script: ' + script_name
-				endelse
-			end
+				;\\ LOAD UP A NEW SCRIPT
+				'load_script_button': begin
+					dcai_global.info.current_command_index = -1
+					fname = dialog_pickfile(/read)
+					script_name = file_basename(strcompress(fname, /remove_all))
+					spl = strsplit(script_name, '.', /extract)
+					script_name = spl[0]
+					res = execute('resolve_routine, /is_function, "' + script_name + '"')
+					if res eq 1 then begin
+						dcai_global.info.schedule_script = script_name
+						widget_control, dcai_global.gui.script_label, set_value = 'Current Schedule: ' + script_name
+						DCAI_Log, 'Loaded new script: ' + script_name
+					endif else begin
+						DCAI_Log, 'Unable to load script: ' + script_name
+					endelse
+				end
 
-			;\\ SEND THE RESET COMMAND TO THE CURRENT SCRIPT
-			'reset_script_button': begin
-		        dcai_global.info.current_command_index = -1
-		        if (dcai_global.info.schedule_script ne '') then begin
-		          	res = call_function(dcai_global.info.schedule_script, /reset)
-		        endif
-	      	end
+				;\\ SEND THE RESET COMMAND TO THE CURRENT SCRIPT
+				'reset_script_button': begin
+			        dcai_global.info.current_command_index = -1
+			        if (dcai_global.info.schedule_script ne '') then begin
+			          	res = call_function(dcai_global.info.schedule_script, /reset)
+			        endif
+		      	end
 
-			;\\ LOAD SETTINGS
-			'load_settings_button': begin
-		    	DCAI_Control_LoadSettings
-	      	end
+				;\\ LOAD SETTINGS
+				'load_settings_button': begin
+			    	DCAI_Control_LoadSettings
+		      	end
 
-			;\\ SAVE SETTINGS
-			'save_settings_button': begin
-				fname = dialog_pickfile(title='Save Settings To...', $
-							file = file_basename(dcai_global.info.settings_file), $
-							path = file_dirname(dcai_global.info.settings_file))
-				if fname ne '' then DCAI_Control_SaveSettings, filename=fname
-	      	end
+				;\\ SAVE SETTINGS
+				'save_settings_button': begin
+					fname = dialog_pickfile(title='Save Settings To...', $
+								file = file_basename(dcai_global.info.settings_file), $
+								path = file_dirname(dcai_global.info.settings_file))
+					if fname ne '' then DCAI_Control_SaveSettings, filename=fname
+		      	end
 
-			;\\ SHOW SETTINGS
-			'show_settings_button': begin
-				DCAI_SettingsWrite, dcai_global.settings, '', /no_write, out_text = out_text, /parseall
-				base = widget_base(group_leader = dcai_global.gui.base, uval = {tag:''}, col = 1)
-				list = widget_text(base, value = out_text, font = dcai_global.gui.font, $
-									ys=n_elements(out_text) < 80, xs = 100., /scroll)
-				widget_control, /realize, base
-	      	end
+				;\\ SHOW SETTINGS
+				'show_settings_button': begin
+					DCAI_SettingsWrite, dcai_global.settings, '', /no_write, out_text = out_text, /parseall
+					base = widget_base(group_leader = dcai_global.gui.base, uval = {tag:''}, col = 1)
+					list = widget_text(base, value = out_text, font = dcai_global.gui.font, $
+										ys=n_elements(out_text) < 80, xs = 100., /scroll)
+					widget_control, /realize, base
+		      	end
 
-			;\\ LOAD UP THE CAMERA INTERFACE/GUI
-			'start_camera_driver': begin
-				;\\ Create a base widget to embed the driver gui in
-					dcai_global.info.cam_driver_base = widget_base(group_leader = dcai_global.gui.base, title = 'Camera Driver', xoff = 40, yoff = 40)
-					Andor_Camera_Driver_GUI, dcai_global.settings.external_dll, embed_in_widget = dcai_global.info.cam_driver_base, $
-											 initial_settings = dcai_global.info.camera_settings, update_settings_callback = 'DCAI_Control_Driver_Callback'
-			end
+				;\\ LOAD UP THE CAMERA INTERFACE/GUI
+				'start_camera_driver': begin
+					;\\ Create a base widget to embed the driver gui in
+						dcai_global.info.cam_driver_base = widget_base(group_leader = dcai_global.gui.base, title = 'Camera Driver', xoff = 40, yoff = 40)
+						Andor_Camera_Driver_GUI, dcai_global.settings.external_dll, embed_in_widget = dcai_global.info.cam_driver_base, $
+												 initial_settings = dcai_global.info.camera_settings, update_settings_callback = 'DCAI_Control_Driver_Callback'
+				end
 
-			;\\ SELECT A FILTER
-			'command_filter': begin
-				new_filt = event.index
-				call_procedure, dcai_global.info.drivers, {device:'filter_select', filter:new_filt}
-			end
+				;\\ SELECT A FILTER
+				'command_filter': begin
+					new_filt = event.index
+					call_procedure, dcai_global.info.drivers, {device:'filter_select', filter:new_filt}
+				end
 
-			;\\ DRIVE MIRROR MOTOR
-			'command_mirror': begin
-				pos = ['sky','cal']
-				new_pos = pos[event.index]
-				if new_pos eq 'sky' then real_pos = dcai_global.settings.mirror.sky
-				if new_pos eq 'cal' then real_pos = dcai_global.settings.mirror.cal
-				call_procedure, dcai_global.info.drivers, {device:'mirror_drive', to:real_pos}
-			end
+				;\\ DRIVE MIRROR MOTOR
+				'command_mirror': begin
+					pos = ['sky','cal']
+					new_pos = pos[event.index]
+					if new_pos eq 'sky' then real_pos = dcai_global.settings.mirror.sky
+					if new_pos eq 'cal' then real_pos = dcai_global.settings.mirror.cal
+					call_procedure, dcai_global.info.drivers, {device:'mirror_drive', to:real_pos}
+				end
 
-			;\\ LAUNCH A NEW PLUGIN
-			'plugin': begin
+				;\\ LAUNCH A NEW PLUGIN
+				'plugin': begin
 
-				new_plugin = obj_new(uval.plugin)
-				if (size(*dcai_global.info.plugins, /n_dimensions)) ne 0 then begin
-					*dcai_global.info.plugins = [*dcai_global.info.plugins, new_plugin]
-				endif else begin
-					*dcai_global.info.plugins = [new_plugin]
-				endelse
-			end
+					new_plugin = obj_new(uval.plugin)
+					if (size(*dcai_global.info.plugins, /n_dimensions)) ne 0 then begin
+						*dcai_global.info.plugins = [*dcai_global.info.plugins, new_plugin]
+					endif else begin
+						*dcai_global.info.plugins = [new_plugin]
+					endelse
+				end
 
-			;\\ REINIT ETALON
-			'etalon_init': call_procedure, dcai_global.info.drivers, {device:'etalon_init'}
+				;\\ REINIT ETALON
+				'etalon_init': call_procedure, dcai_global.info.drivers, {device:'etalon_init'}
 
-			;\\ HOME MOTORS
-			'filter_init': call_procedure, dcai_global.info.drivers, {device:'filter_init'}
-			'mirror_init': call_procedure, dcai_global.info.drivers, {device:'mirror_init'}
-			'calibration_init': call_procedure, dcai_global.info.drivers, {device:'calibration_init'}
+				;\\ HOME MOTORS
+				'filter_init': call_procedure, dcai_global.info.drivers, {device:'filter_init'}
+				'mirror_init': call_procedure, dcai_global.info.drivers, {device:'mirror_init'}
+				'calibration_init': call_procedure, dcai_global.info.drivers, {device:'calibration_init'}
 
 
-			;\\ RE-ROUTE AN EVENT GENERATED WITHIN A PLUGIN
-			'plugin_event': begin
-				call_method, uval.method, uval.object, event
-			end
+				;\\ RE-ROUTE AN EVENT GENERATED WITHIN A PLUGIN
+				'plugin_event': begin
+					call_method, uval.method, uval.object, event
+				end
 
-			else: print, 'Tag not recognized: ' + uval.tag
-		endcase
-	endif
+				else: print, 'Tag not recognized: ' + uval.tag
+			endcase
+		endif
+	endelse
 	;\\ END WIDGET EVENTS ----------------------------------------------------------------------------------------------
 
 end

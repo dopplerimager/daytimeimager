@@ -125,6 +125,7 @@ function DCAI_ScanControl, command, scan_type, argument, $
 					cws_idx = (where(lambda_diff eq min(lambda_diff)))[0]
 					if cws[0, cws_idx].view_wavelength_nm eq 0.0 then begin
 						DCAI_Log, 'ScanControl: No calibration info for wavelength scan.'
+						res = dialog_message('No calibration info for wavelength scan')
 						return, 0
 					endif
 

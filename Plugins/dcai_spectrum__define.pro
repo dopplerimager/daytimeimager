@@ -738,7 +738,21 @@ pro DCAI_Spectrum::BuildWidgets, lambda_index
 
 	info_base = widget_base(sub_base, col = 1)
 
+	scan_type_label = widget_label(info_base, value = 'Scan Type: ' + self.lambdas[lambda_index].scan_type, $
+								  font = dcai_global.gui.font, /align_left)
+
+	if (self.lambdas[lambda_index].scan_type eq 'wavelength') then begin
+		scan_range_label = widget_label(info_base, value = 'Range: ' + strjoin(string(self.lambdas[lambda_index].wavelength_range, f='(f0.3)'), '-'), $
+								  		font = dcai_global.gui.font, /align_left)
+		scan_range_label = widget_label(info_base, value = 'Full Range: ' + strjoin(string(self.lambdas[lambda_index].wavelength_range_full, f='(f0.3)'), '-'), $
+								  		font = dcai_global.gui.font, /align_left)
+	endif
+
+	lab = widget_label(info_base, font=dcai_global.gui.font, value = 'Using Etalons: ' + $
+						strjoin(string(where(self.lambdas[lambda_index].etalons eq 1), f='(i0)'), ','), /align_left)
+
 	edit_base = widget_base(info_base, col=1, /base_align_right)
+
 	widget_edit_field, edit_base, label = 'Channels', font = dcai_global.gui.font, /column, $
 					   ids=ids, edit_xsize=7, lab_xsize=80, start_value=string(self.lambdas[lambda_index].n_scan_channels, f='(i0)'), $
 					   edit_uval={tag:'plugin_event', object:self, method:'EditSpectrum', index:lambda_index, field:'channels'}
@@ -764,13 +778,6 @@ pro DCAI_Spectrum::BuildWidgets, lambda_index
 					   edit_uval={tag:'plugin_event', object:self, method:'EditSpectrum', index:lambda_index, field:'numexposures'}
 	self.lambdas[lambda_index].edit_ids.numexposures = ids.text
 
-	lab = widget_label(info_base, font=dcai_global.gui.font, value = 'Etalons: ' + $
-						strjoin(string(where(self.lambdas[lambda_index].etalons eq 1), f='(i0)'), ','), xsize=100)
-
-
-	delete = widget_button(info_base, value = 'Close ' + wavelength_string, font = dcai_global.gui.font, xs = 100, $
-								uval={tag:'plugin_event', object:self, method:'RemoveSpectrum', index:lambda_index})
-
 	scan_base = widget_base(info_base, row = 2, frame=1)
 		label = widget_label(scan_base, value = 'Scan', font= dcai_global.gui.font + '*Bold')
 		scan_base_btn = widget_base(scan_base, col = 1)
@@ -784,6 +791,9 @@ pro DCAI_Spectrum::BuildWidgets, lambda_index
 								uval={tag:'plugin_event', object:self, method:'Scan', action:'unpause', index:lambda_index})
 			scan = widget_button(scan_base_btn, value = 'Finalize', font = dcai_global.gui.font, xs = 100, $
 								uval={tag:'plugin_event', object:self, method:'Scan', action:'finalize', index:lambda_index})
+
+	delete = widget_button(info_base, value = 'Close ' + wavelength_string, font = dcai_global.gui.font + '*Bold', xs = 100, $
+								uval={tag:'plugin_event', object:self, method:'RemoveSpectrum', index:lambda_index})
 
 	if self.tabbed_mode eq 0 then DCAI_Control_RegisterPlugin, base, self
 
@@ -915,10 +925,10 @@ pro DCAI_Spectrum::ScheduleCommand, command, keywords, values
 
 	for k = 0, n_elements(keywords) - 1 do begin
 		case keywords[k] of
-			'wavelength': lambda = float(values[k])
-			'min_snr': min_snr = float(values[k])
-			'min_scans': min_scans = fix(values[k])
-			'max_scans': max_scans = fix(values[k])
+			'wavelength':    lambda = float(values[k])
+			'min_snr':       min_snr = float(values[k])
+			'min_scans':     min_scans = fix(values[k])
+			'max_scans':     max_scans = fix(values[k])
 			'num_exposures': num_exposures = fix(values[k])
 			else: DCAI_Log, 'WARNING: Keyword not recognized by Spectrum plugin: ' + keywords[k]
 		endcase
