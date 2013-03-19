@@ -179,8 +179,9 @@ pro DCAI_Spectrum::frame
 
 						use_axis = where(xaxis[z,*] ge self.lambdas[id].wavelength_range[0] and $
 									     xaxis[z,*] le self.lambdas[id].wavelength_range[1], n_x_use)
-						xaxis = xaxis[use_axis]
+						this_xaxis = reform(xaxis[z, use_axis])
 						spx = spx[use_axis]
+						print, n_x_use
 					endelse
 
 					;spx -= smooth(spx, n_elements(spx)/3., /edge)
@@ -192,12 +193,12 @@ pro DCAI_Spectrum::frame
 
 					spx -= min(spx)
 
-					plot, xaxis, xaxis, color = 255, /nodata, yrange = [0, max(spx)], $
+					plot, this_xaxis, this_xaxis, color = 255, /nodata, yrange = [0, max(spx)], $
 						  /noerase, xtickname=blank, xstyle=5, ystyle=5, $
 						  pos=[zc[z,0],zc[z,1],zc[z,0],zc[z,1]] + [-.07,-.07,.07,.07]
 
 					xyouts, zc[z,0], zc[z,1], string(z, f='(i0)'), color = 90, /normal, align=.5
-					oplot, xaxis, spx
+					oplot, this_xaxis, spx
 
 				endfor
 
