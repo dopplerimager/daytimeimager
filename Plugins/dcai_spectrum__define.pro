@@ -181,7 +181,6 @@ pro DCAI_Spectrum::frame
 									     xaxis[z,*] le self.lambdas[id].wavelength_range[1], n_x_use)
 						this_xaxis = reform(xaxis[z, use_axis])
 						spx = spx[use_axis]
-						print, n_x_use
 					endelse
 
 					;spx -= smooth(spx, n_elements(spx)/3., /edge)
