@@ -585,6 +585,16 @@ pro DCAI_Spectrum::NewSpectrum, info
 	if total(info.etalons) eq 0 then return	;\\ NOT USING ANY ETALONS!!
 
 	;\\ TRY TO BUILD THE ZONEMAP
+	pts = where(dcai_global.scan.center_wavelength[*,0].view_wavelength_nm ne 0, npts)
+	if npts eq 0 then begin
+
+	endif else begin
+		cw_lambdas = dcai_global.scan.center_wavelength[*,0].view_wavelength_nm
+		diff = abs(cw_lambdas - info.wavelength)
+		use = (where(diff eq min(diff)))[0]
+		center = dcai_global.scan.center_wavelength[use,0].center
+	endelse
+
 	fringe_center = DCAI_ScanControl('getfringecenter', 'dummy', 0)
 	zonemap = self->BuildZonemap(info.zonemap, image_dims, fringe_center)
 	if zonemap.error ne 'none' then begin
@@ -592,6 +602,7 @@ pro DCAI_Spectrum::NewSpectrum, info
 				  ', got error ' + zonemap.error
 		return
 	endif
+
 
 	;\\ CHECK TO SEE IF THIS WAVELENGTH, ETALON COMBO, AND ZONEMAP IS ALREADY PRESENT
 	uid = self->uid(arg={wavelength:info.wavelength, etalons:info.etalons, n_zones:zonemap.n_zones})
@@ -626,6 +637,7 @@ pro DCAI_Spectrum::NewSpectrum, info
 	self.lambdas[index].filename_format = info.filename_format
 	self.lambdas[index].zone_info = ptr_new(zonemap)
 	self.lambdas[index].num_exposures = 1
+	self.lambdas[index].center = center
 
 
 	;\\ MAKE SURE WE HAVE ALL THE PHASEMAPS REQUIRED
@@ -1089,15 +1101,13 @@ pro DCAI_Spectrum::CreateDataFile, lambda_index, errcode=errcode
 	data_path = dcai_global.settings.paths.data
 	filename = data_path + '\' + self.lambdas[lambda_index].filename
 
-	header = {site:'', $
-			  site_code:'', $
-			  latitude:0.0, $
-			  longitude:0.0, $
-			  operator:'', $
-			  comment:'', $
-			  software:'' }
+	header = {site:dcai_global.settings.site.name, $
+			  site_code:dcai_global.settings.site.code, $
+			  latitude:dcai_global.settings.site.geo_lat, $
+			  longitude:dcai_global.settings.site.geo_lon }
 
 	data = self->CreateDataStruct(lambda_index)
+
 	dcai_write_netcdf, filename, header=header, data=data, /new, errcode=errcode
 end
 
@@ -1116,6 +1126,8 @@ function DCAI_Spectrum::CreateDataStruct, lambda_index
 	l = self.lambdas[lambda_index]
 	xy = size(*dcai_global.info.image, /dimensions)
 
+	andor_camera_driver, dcai_global.settings.external_dll, 'uGetTemperatureF', 0, cam_temp, result, /auto_acq
+
 	return, { $
 		spectra:*l.spectra, $
 		acc_im:*l.accumulated_image, $
@@ -1128,15 +1140,18 @@ function DCAI_Spectrum::CreateDataStruct, lambda_index
 		y_pixels:xy[1], $
 		x_bin:dcai_global.info.camera_settings.imagemode.xbin, $
 		y_bin:dcai_global.info.camera_settings.imagemode.ybin, $
-		x_center:0, $
-		y_center:0, $
-		cam_temp:dcai_global.info.camera_settings.curTemp, $
+		x_center:l.center[0], $
+		y_center:l.center[1], $
+		cam_temp:cam_temp, $
 		cam_gain:dcai_global.info.camera_settings.emgain_use, $
 		cam_exptime:dcai_global.info.camera_settings.expTime_use, $
 		nscans:l.current_scan, $
 		start_time:l.scan_start_time, $
 		end_time:dt_tm_tojs(_systime(/ut)), $
-		etalon_gap:dcai_global.settings.etalon.gap_mm $
+		etalon_name:dcai_global.settings.etalon.name, $
+		etalon_gap:dcai_global.settings.etalon.gap_mm, $
+		etalon_stepsperorder:dcai_global.settings.etalon.steps_per_order, $
+		etalon_parallel_offset:transpose(dcai_global.settings.etalon.parallel_offset) $
 	}
 
 end
@@ -1191,6 +1206,7 @@ pro DCAI_Spectrum__define
 				  num_exposures:0, $ 			;\\ Number of exposures to do consecutively
 				  current_exposure:0, $ 		;\\ The current exposure number
 				  scan_start_time:0D, $		    ;\\ Scan start time in UT Julian Seconds
+				  center:[0,0], $			    ;\\ Zonemap center (taken from center_wavelength struc if possible)
 				  sizes:intarr(4), $			;\\ Information for the spectra accumulator
 				  spectra:ptr_new(/alloc), $	;\\ Dimensions will be [zones, spectral channels]
 				  zonemap:ptr_new(/alloc), $	;\\ Dimensions will be [xpixels, ypixels]

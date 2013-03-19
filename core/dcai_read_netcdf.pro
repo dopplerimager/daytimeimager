@@ -1,15 +1,12 @@
 
-pro DCAI_Read_NetCDF, filename
+function DCAI_Read_NetCDF, filename
 
 	globals = [ $
 		'Start_Date_UT', $
 		'Site', $
 		'Site_code', $
 		'Latitude', $
-		'Longitude', $
-		'Operator', $
-		'Comment', $
-		'Software' $
+		'Longitude' $
 	]
 
 	names = [ $
@@ -29,10 +26,11 @@ pro DCAI_Read_NetCDF, filename
 		'Wavelength_Range', $
 		'Wavelength_Range_Full', $
 		'Etalon_Gap_mm', $
+		'Etalon_Stepsperorder', $
+		'Etalon_Parallel_Offset', $
 		'Spectra', $
 		'Accumulated_Image' $
 	]
-
 
 	data = {filename:filename}
 
@@ -69,6 +67,6 @@ pro DCAI_Read_NetCDF, filename
 
 	ncdf_close, id
 
-	help, data, /str
+	return, data
 
 end

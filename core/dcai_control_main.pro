@@ -257,8 +257,6 @@ end
 
 ;\\ DCAI control program entry point. Should be called with the following arguments:
 ;\\
-;\\ External_dll = the dll containing wrapped camera calls, etc
-;\\
 ;\\ Camera_profile = the initial set of camera settings to upload to the camera.
 ;\\
 ;\\ Drivers [optional] = idl pro file containing code to actually talk to hardware
@@ -268,7 +266,6 @@ end
 ;\\
 pro DCAI_Control_Main, settings_file=settings_file, $		;\\ required
 					   camera_settings=camera_settings, $ 	;\\ required
-					   external_dll=external_dll, $			;\\ required
 					   drivers=drivers, $
 					   schedule_script=schedule_script, $
 					   simulate_frames=simulate_frames
@@ -302,11 +299,6 @@ pro DCAI_Control_Main, settings_file=settings_file, $		;\\ required
 		camera_settings = ''
 	endif
 
-	if not keyword_set(external_dll) then begin
-		res = dialog_message('No external DLL was provided. Exiting.')
-		return
-	endif
-
 	if not keyword_set(drivers) then begin
 		drivers = 'DCAI_NullDrivers'
 		print, 'No hardware drivers provided, a null-driver will be used (no hardware)'
@@ -316,7 +308,7 @@ pro DCAI_Control_Main, settings_file=settings_file, $		;\\ required
 
 
 	;\\ GRAB A DUMMY CAMERA SETTINGS STRUCTURE
-		Andor_Camera_Driver, camera_dll, 'uGetSettingsStructure', 0, cam_settings, result
+		Andor_Camera_Driver, 'dummy', 'uGetSettingsStructure', 0, cam_settings, result
 
 	;\\ CONSOLIDATE ALL THE INFO
 		info = { drivers:drivers, $					;\\ Hardware driver code

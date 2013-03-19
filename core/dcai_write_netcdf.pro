@@ -23,6 +23,7 @@ pro DCAI_Write_NetCDF, 	filename, $
 		ydim_id = 		ncdf_dimdef(ncdid, 'YDim',  data.y_pixels)
 		range_dim_id =  ncdf_dimdef(ncdid, 'Range', 2)
 		etalon_dim_id = ncdf_dimdef(ncdid, 'Etalon', 2)
+		etalon_leg_dim_id = ncdf_dimdef(ncdid, 'EtalonLeg', 3)
 
 		start_date_ut = dt_tm_fromjs(dt_tm_tojs(systime(/ut)), format='Y$_0d$_0n$')
 
@@ -32,9 +33,7 @@ pro DCAI_Write_NetCDF, 	filename, $
 		ncdf_attput, ncdid, /global, 'Site_code', 	 header.site_code, /char
 		ncdf_attput, ncdid, /global, 'Latitude',  	 header.latitude,  /float
 		ncdf_attput, ncdid, /global, 'Longitude', 	 header.longitude, /float
-		ncdf_attput, ncdid, /global, 'Operator',  	 header.operator,  /char
-		ncdf_attput, ncdid, /global, 'Comment',   	 header.comment,   /char
-		ncdf_attput, ncdid, /global, 'Software',  	 header.software,  /char
+
 
 		;\\ CREATE THE VARIABLES
 		id = ncdf_vardef  (ncdid, 'Start_Time',      time_dim_id, 	/long)
@@ -47,12 +46,17 @@ pro DCAI_Write_NetCDF, 	filename, $
       	id = ncdf_vardef  (ncdid, 'Cam_Exptime',     time_dim_id, 	/float)
       	id = ncdf_vardef  (ncdid, 'X_Bin',             	  			/short)
       	id = ncdf_vardef  (ncdid, 'Y_Bin',                			/short)
+
        	id = ncdf_vardef  (ncdid, 'Scan_Channels',        			/short)
        	id = ncdf_vardef  (ncdid, 'Spectral_Channels',        		/short)
 		id = ncdf_vardef  (ncdid, 'Wavelength',      	  			/float)
 		id = ncdf_vardef  (ncdid, 'Wavelength_Range', range_dim_id, /float)
 		id = ncdf_vardef  (ncdid, 'Wavelength_Range_Full', range_dim_id, /float)
+
 		id = ncdf_vardef  (ncdid, 'Etalon_Gap_mm', etalon_dim_id, 	/float)
+		id = ncdf_vardef  (ncdid, 'Etalon_Stepsperorder', etalon_dim_id, 	/float)
+		id = ncdf_vardef  (ncdid, 'Etalon_Parallel_Offset', [etalon_dim_id,etalon_leg_dim_id], 	/long)
+
 		id = ncdf_vardef  (ncdid, 'Spectra', [zone_dim_id, chan_dim_id, time_dim_id], /long)
 		id = ncdf_vardef  (ncdid, 'Accumulated_Image', [xdim_id, ydim_id, time_dim_id], /long)
 
@@ -67,12 +71,17 @@ pro DCAI_Write_NetCDF, 	filename, $
        	ncdf_attput, ncdid, ncdf_varid(ncdid, 'Cam_Exptime'),          'Units', 'Seconds', /char
        	ncdf_attput, ncdid, ncdf_varid(ncdid, 'X_Bin'), 	           'Units', 'Image x binning in pixels', /char
        	ncdf_attput, ncdid, ncdf_varid(ncdid, 'Y_Bin'),     	       'Units', 'Image y binning in pixels', /char
+
        	ncdf_attput, ncdid, ncdf_varid(ncdid, 'Scan_Channels'),        'Units', 'Number of scan channels', /char
        	ncdf_attput, ncdid, ncdf_varid(ncdid, 'Spectral_Channels'),    'Units', 'Number of spectral channels', /char
        	ncdf_attput, ncdid, ncdf_varid(ncdid, 'Wavelength'),   		   'Units', 'nm', /char
        	ncdf_attput, ncdid, ncdf_varid(ncdid, 'Wavelength_Range'),     'Units', 'nm', /char
        	ncdf_attput, ncdid, ncdf_varid(ncdid, 'Wavelength_Range_Full'),'Units', 'nm', /char
+
        	ncdf_attput, ncdid, ncdf_varid(ncdid, 'Etalon_Gap_mm'),		   'Units', 'mm', /char
+       	ncdf_attput, ncdid, ncdf_varid(ncdid, 'Etalon_Stepsperorder'), 'Units', 'Etalon digital units per nm', /char
+       	ncdf_attput, ncdid, ncdf_varid(ncdid, 'Etalon_Parallel_Offset'), 'Units', 'Etalon digital units', /char
+
        	ncdf_attput, ncdid, ncdf_varid(ncdid, 'Spectra'),              'Units', 'Camera digital units', /char
        	ncdf_attput, ncdid, ncdf_varid(ncdid, 'Accumulated_Image'),    'Units', 'Camera digital units', /char
 
@@ -86,7 +95,10 @@ pro DCAI_Write_NetCDF, 	filename, $
        	ncdf_varput, ncdid, ncdf_varid(ncdid, 'Wavelength'),  		    data.wavelength
        	ncdf_varput, ncdid, ncdf_varid(ncdid, 'Wavelength_Range'),      data.wavelength_range
        	ncdf_varput, ncdid, ncdf_varid(ncdid, 'Wavelength_Range_Full'), data.wavelength_range_full
+
        	ncdf_varput, ncdid, ncdf_varid(ncdid, 'Etalon_Gap_mm'), 		data.etalon_gap
+       	ncdf_varput, ncdid, ncdf_varid(ncdid, 'Etalon_Stepsperorder'), 	data.etalon_stepsperorder
+       	ncdf_varput, ncdid, ncdf_varid(ncdid, 'Etalon_Parallel_Offset'),data.etalon_parallel_offset
 
 		;\\ UPDATE THE DISK COPY
 		ncdf_control, ncdid, /sync
