@@ -11,6 +11,5 @@
 
 DCAI_Control_Main, settings = 'DCAI_Settings', $
 				   camera_settings = 'DCAI_Cameraprofile', $
-				   external_dll = 'SDI_External.dll', $
 				   drivers = 'DCAI_Drivers', $
 				   schedule = ''

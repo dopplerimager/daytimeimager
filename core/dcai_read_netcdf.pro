@@ -13,18 +13,18 @@ function DCAI_Read_NetCDF, filename
 		'Start_Time', $
 		'End_Time',   $
 	    'Number_Scans', $
-	    'X_Center', $
-	    'Y_Center', $
+	    'Image_Center', $
+	    'Image_Binning', $
+	    'Image_Size', $
 	    'Cam_Temp', $
 	    'Cam_Gain', $
 	    'Cam_Exptime', $
-	    'X_Bin', $
-	    'Y_Bin', $
 	    'Scan_Channels', $
 	    'Spectral_Channels', $
 		'Wavelength', $
 		'Wavelength_Range', $
 		'Wavelength_Range_Full', $
+		'Wavelength_Axis', $
 		'Etalon_Gap_mm', $
 		'Etalon_Stepsperorder', $
 		'Etalon_Parallel_Offset', $
