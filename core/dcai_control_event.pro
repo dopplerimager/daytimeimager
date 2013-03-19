@@ -198,7 +198,7 @@ pro DCAI_Control_Event, event
 									 'Scanning: ' + strjoin(string(dcai_global.scan.scanning[0:n_etz-1], f='(i0)'), ', '), $
 				                     'Channel: ' + strjoin(string(dcai_global.scan.channel[0:n_etz-1], f='(i0)') + '/' + string(dcai_global.scan.n_channels[0:n_etz-1], f='(i0)'), ', '), $
 				                     'Step Size: ' + strjoin(string(dcai_global.scan.step_size[0:n_etz-1], f='(f0.2)'), ', '), $
-				                     'Steps/Order/nm: ' + strjoin(string(dcai_global.settings.etalon.steps_per_order[0:n_etz-1], f='(f0.4)'), ', ')]
+				                     'Steps/Order/nm: ' + strjoin(string(dcai_global.settings.etalon[0:n_etz-1].steps_per_order, f='(f0.4)'), ', ')]
 
 						;\\ ACTIVE PLUGIN INFO
 						if obj_valid(dcai_global.info.active_plugin.object) eq 1 then begin
