@@ -65,7 +65,7 @@ function DCAI_SettingsTemplate
 			geo_lon:0.0, $
 			editable:['name', 'code', 'geo_lat', 'geo_lon']}
 
-	settings = {etalon:[etalon, etalon], $
+	settings = {etalon:[etalon], $
 				filter:filter, $
 				mirror:mirror, $
 				calibration:calibration, $
