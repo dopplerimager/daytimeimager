@@ -2,6 +2,7 @@ function DCAI_PixelScan::init
 
 	common DCAI_Control, dcai_global
 
+	if n_elements(dcai_global.settings.etalon) lt 2 then return, 0
 
 	;\\ DEFAULTS
 		dims = size(*dcai_global.info.image, /dimensions)
@@ -11,10 +12,8 @@ function DCAI_PixelScan::init
 	;\\ SAVE FIELDS
 		self.save_tags = ['wave_start', 'wave_stop', 'wave_etalons', 'wave_channels', 'pixel', 'pixels_used']
 
-
 	;\\ RESTORE SAVED SETTINGS
 		self->load_settings
-
 
 	;\\ CREATE THE GUI
 		font = dcai_global.gui.font
