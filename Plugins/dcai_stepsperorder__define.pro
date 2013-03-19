@@ -202,7 +202,7 @@ pro DCAI_StepsperOrder::frame
 					last = (*self.stepsperorder)[self.current_scan-1]
 					change = string(100.*(peak - last)/last, f='(f0.4)') + '%'
 				endif else begin
-					chage = 'N/A'
+					change = 'N/A'
 				endelse
 
 				xyouts, peak, min(corr) + 0.22*(max(corr) - min(corr)), '!7D!3 Peak: ' + change, $

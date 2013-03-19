@@ -14,9 +14,9 @@ pro DCAI_Control_Event, event
 
 		;\\ INDICATE THE CURRENT SCHEDULE COMMAND IN THE WIDGET LIST
 		if size(*dcai_global.info.current_queue, /type) ne 0 then begin
-			if dcai_global.info.current_command_index ne -1 and $
-			   strlen((*dcai_global.info.current_queue)[dcai_global.info.current_command_index]) gt 0 then $
-				widget_control, set_list_select=dcai_global.info.current_command_index-1, dcai_global.gui.queue
+			if dcai_global.info.current_command_index ne -1 then $
+				if strlen((*dcai_global.info.current_queue)[dcai_global.info.current_command_index-1]) gt 0 then $
+					widget_control, set_list_select=dcai_global.info.current_command_index-1, dcai_global.gui.queue
 		endif
 
 
