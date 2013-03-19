@@ -175,12 +175,13 @@ pro DCAI_Spectrum::frame
 						un = sn(uniq(sn))
 						use = where(norm gt un[n_elements(un)*.5], n_use)
 						if n_use eq 0 then continue
-						spx[use] /= norm[use]
+						;spx[use] /= norm[use]
 
-						use_axis = where(xaxis[z,*] ge self.lambdas[id].wavelength_range[0] and $
-									     xaxis[z,*] le self.lambdas[id].wavelength_range[1], n_x_use)
-						this_xaxis = reform(xaxis[z, use_axis])
-						spx = spx[use_axis]
+						use_xaxis = where(xaxis ge self.lambdas[id].wavelength_range[0] and $
+									      xaxis le self.lambdas[id].wavelength_range[1], n_x_use)
+
+						this_xaxis = xaxis[use_xaxis]
+						spx = spx[use_xaxis]
 					endelse
 
 					;spx -= smooth(spx, n_elements(spx)/3., /edge)
@@ -198,6 +199,10 @@ pro DCAI_Spectrum::frame
 
 					xyouts, zc[z,0], zc[z,1], string(z, f='(i0)'), color = 90, /normal, align=.5
 					oplot, this_xaxis, spx
+					;oplot, [self.lambdas[id].wavelength_range[0], self.lambdas[id].wavelength_range[0]], $
+					;	   [0, max(spx)], color = 150
+					;oplot, [self.lambdas[id].wavelength_range[1], self.lambdas[id].wavelength_range[1]], $
+					;	   [0, max(spx)], color = 150
 
 				endfor
 
@@ -995,19 +1000,15 @@ function DCAI_Spectrum::CalculateWavelengthAxis, lambda_index
 		  					   center_wavelength:0.0, pixel:[-1,-1]})
 
 	zmap = *l.zonemap
-	range = l.wavelength_range_full[1] - l.wavelength_range_full[0]
-	del_lambda = range/float(l.n_spectral_channels)
+	def = where(zmap ne -1)
+	range_min = l.wavelength_range[0] - max(abs(offsets[def]))
+	range_max = l.wavelength_range_full[1]
 
-	range_axis = findgen(l.n_spectral_channels)*del_lambda + l.wavelength_range_full[0]
+	del_lambda = (l.wavelength_range_full[1] - l.wavelength_range_full[0]) / $
+				 (l.n_scan_channels)
+	range_axis = findgen(l.n_spectral_channels)*del_lambda + range_min
 
-	wave_axis = fltarr(l.n_zones, l.n_spectral_channels)
-	for z = 0, l.n_zones - 1 do begin
-		pts = where(zmap eq z)
-		max_offset = min(offsets[pts])
-		wave_axis[z,*] = max_offset + range_axis
-	endfor
-
-	return, wave_axis
+	return, range_axis
 end
 
 

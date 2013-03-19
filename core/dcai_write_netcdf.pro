@@ -53,7 +53,7 @@ pro DCAI_Write_NetCDF, 	filename, $
 		id = ncdf_vardef  (ncdid, 'Wavelength',      	  			/float)
 		id = ncdf_vardef  (ncdid, 'Wavelength_Range', range_dim_id, /float)
 		id = ncdf_vardef  (ncdid, 'Wavelength_Range_Full', range_dim_id, /float)
-		id = ncdf_vardef  (ncdid, 'Wavelength_Axis', [zone_dim_id, chan_dim_id], /float)
+		id = ncdf_vardef  (ncdid, 'Wavelength_Axis', chan_dim_id, /float)
 
 		id = ncdf_vardef  (ncdid, 'Etalon_Gap_mm', etalon_dim_id, 	/float)
 		id = ncdf_vardef  (ncdid, 'Etalon_Stepsperorder', etalon_dim_id, 	/float)
