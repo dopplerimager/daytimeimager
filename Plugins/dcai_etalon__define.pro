@@ -21,7 +21,7 @@ function DCAI_Etalon::init
 		self.info_save = ptr_new(dcai_global.settings.etalon)
 
 	;\\ DEFAULTS
-		self.parallel_step = [10,10]
+		self.parallel_step[*] = 10
 
 	;\\ SAVE FIELDS
 		self.save_tags = ['scan_range', 'step_size', 'move_together', 'parallel_step']

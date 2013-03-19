@@ -19,7 +19,6 @@ function DCAI_StepsperOrder::init
 		self->load_settings
 		etalon = dcai_global.settings.etalon
 
-
 	;\\ CREATE THE GUI
 		font = dcai_global.gui.font
 		_base = widget_base(group=dcai_global.gui.base, col=1, uval={tag:'plugin_base', object:self}, title = 'Steps per Order', $
@@ -31,9 +30,9 @@ function DCAI_StepsperOrder::init
 
 		self.status_id = widget_label(_base, xs = 500, font=font + '*Bold', value='Status: Idle', /align_left)
 
-		edit_base = widget_base(_base, col = 1, /base_align_center)
+		edit_base = widget_base(_base, col = 1, /base_align_center, /align_center)
 
-			scan_base = widget_base(edit_base, col = 2)
+			scan_base = widget_base(edit_base, col = n_elements(dcai_global.settings.etalon), /align_center)
 
 			for k = 0, n_elements(etalon) - 1 do begin
 				;\\ SCAN CONTROL FIELDS

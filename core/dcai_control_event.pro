@@ -195,7 +195,7 @@ pro DCAI_Control_Event, event
 						n_etz = n_elements(dcai_global.settings.etalon)
 						info_list = [info_list, $
 									 '', $
-									 'Scanning: ' + strjoin(string(dcai_global.scan.scanning, f='(i0)'), ', '), $
+									 'Scanning: ' + strjoin(string(dcai_global.scan.scanning[0:n_etz-1], f='(i0)'), ', '), $
 				                     'Channel: ' + strjoin(string(dcai_global.scan.channel[0:n_etz-1], f='(i0)') + '/' + string(dcai_global.scan.n_channels[0:n_etz-1], f='(i0)'), ', '), $
 				                     'Step Size: ' + strjoin(string(dcai_global.scan.step_size[0:n_etz-1], f='(f0.2)'), ', '), $
 				                     'Steps/Order/nm: ' + strjoin(string(dcai_global.settings.etalon.steps_per_order[0:n_etz-1], f='(f0.4)'), ', ')]
