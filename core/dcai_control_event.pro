@@ -87,13 +87,13 @@ pro DCAI_Control_Event, event
 								  dcai_global.settings.etalon[0].voltage_range[0]) + .02
 
 					if dcai_global.settings.etalon[0].gap_mm lt 1 then begin
-						xmag = 0.3e-6 & ymag = 0.3e-6 & zmag = 0.3e-6
+						xmag = 0.8e-6 & ymag = 0.8e-6 & zmag = 0
 					endif else begin
-						xmag = 0.2e-4 & ymag = 0.2e-4 & zmag = 0.2e-4
+						xmag = 0.8e-5 & ymag = 0.8e-5 & zmag = 0
 					endelse
 					sdi_synth_frnginit, php, dims[0], dims[1], mag=[xmag,ymag,zmag], $
 										center=[dims[0]/2., dims[1]/2.], ordwin=[0.0,5.0], $
-			                     		phisq=50.0, zerph=zerph, R=.7
+			                     		phisq=1.0, zerph=zerph, R=.7
 			        sdi_synth_fringemap, image_a, pmap, php, field_stop
 
 
@@ -102,30 +102,30 @@ pro DCAI_Control_Event, event
 						max_diff = max([abs(volts[1]-volts[0]),abs(volts[2]-volts[0]),abs(volts[1]-volts[2])])/$
 									float(dcai_global.settings.etalon[0].voltage_range[1]-$
 										  dcai_global.settings.etalon[0].voltage_range[0])
-						if max_diff gt .4 then image_a *= 0
+						if max_diff gt .4 then image_a[*] = 1
 
 					if n_elements(dcai_global.settings.etalon) eq 2 then begin
 
 						zerph = ( (dcai_global.settings.etalon[1].leg_voltage[0] + 1) / $
 								float(dcai_global.settings.etalon[1].voltage_range[1] - $
-									  dcai_global.settings.etalon[1].voltage_range[0])) - .2
+									  dcai_global.settings.etalon[1].voltage_range[0]))
 
 						if dcai_global.settings.etalon[1].gap_mm lt 1 then begin
-							xmag = 0.3e-6 & ymag = 0.3e-6 & zmag = 0.3e-6
+							xmag = 0.8e-6 & ymag = 0.8e-6 & zmag = 0
 						endif else begin
-							xmag = 0.2e-4 & ymag = 0.2e-4 & zmag = 0.2e-4
+							xmag = 0.8e-5 & ymag = 0.8e-5 & zmag = 0
 						endelse
-						sdi_synth_frnginit, php, dims[0], dims[1], mag=[xmag,ymag,zmag], $
+						sdi_synth_frnginit, php2, dims[0], dims[1], mag=[xmag,ymag,zmag], $
 											center=[dims[0]/2., dims[1]/2.], ordwin=[0.0,5.0], $
-				                     		phisq=.05, zerph=zerph, R=.7
-				        sdi_synth_fringemap, image_b, pmap, php, field_stop
+				                     		phisq=1, zerph=zerph, R=.7
+				        sdi_synth_fringemap, image_b, pmap, php2, field_stop
 
 						;\\ SIMULATE WEDGED PLATES
 							volts = dcai_global.settings.etalon[1].leg_voltage
 							max_diff = max([abs(volts[1]-volts[0]),abs(volts[2]-volts[0]),abs(volts[1]-volts[2])])/$
 										float(dcai_global.settings.etalon[1].voltage_range[1]-$
 											  dcai_global.settings.etalon[1].voltage_range[0])
-							if max_diff gt .4 then image_b *= 0
+							if max_diff gt .4 then image_b[*] = 1
 
 					endif else begin
 
@@ -134,7 +134,7 @@ pro DCAI_Control_Event, event
 					endelse
 
 					noise = randomu(systime(/sec)*100L, dims[0], dims[1]) - .5
-			        image = 100.*(image_a+image_b) + 50*noise
+			        image = 100.*(image_a*image_b) + 50*noise
 			        image = long(image) > 0
 			        image_result = 'image'
 			        out = {image:image}

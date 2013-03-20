@@ -36,8 +36,6 @@ pro sdi_synth_frnginit, php, $               ;\A\<Arg0>
 	if not(keyword_set(R))        then R        = 0.7
 	if not(keyword_set(xcpsave))  then xcpsave  = 'NO'
 
-
-
 	  php = {s_php, xcen:     center(0),     $
 	                xcstp:    censtep(0),    $
 	                ycen:     center(1),     $
@@ -48,15 +46,15 @@ pro sdi_synth_frnginit, php, $               ;\A\<Arg0>
 	                ywstp:    wpstep(1),     $
 	                nx:       nx,            $
 	                ny:       ny,            $
-	                xmag:     mag(0),        $
+	                xmag:     double(mag(0)),        $
 	                xmstp:    magstep(0),    $
-	                ymag:     mag(1),        $
+	                ymag:     double(mag(1)),        $
 	                ymstp:    magstep(1),    $
-	                xymag:    mag(2),        $
+	                xymag:    double(mag(2)),        $
 	                xymstp:   magstep(2),    $
-	                phisq:    phisq,         $
+	                phisq:    double(phisq),         $
 	                phistp:   phstep,        $
-	                zerph:    zerph,         $
+	                zerph:    double(zerph),         $
 	                zerstp:   zrstep,        $
 	                resfac:   1.,            $
 	                xsize:    0.,            $
@@ -78,7 +76,6 @@ pro sdi_synth_fringemap, fringes, $      ;\A\<Arg0>
                          field_stop, $   ;\A\<Arg3>
 						 circles=circles
 
-
 ;   Determine the range of orders to be used:
     nout       = 0
     if php.minord ge 0. then begin
@@ -94,6 +91,8 @@ pro sdi_synth_fringemap, fringes, $      ;\A\<Arg0>
 
     xx   = transpose(lindgen(php.ny,php.nx)/php.ny) - (php.xcen - php.xwarp*shiftcoef)
     yy   = lindgen(php.nx,php.ny)/php.nx            - (php.ycen - php.ywarp*shiftcoef)
+	xx = double(xx)
+	yy = double(yy)
 
     if keyword_set(circles) then begin
        pmap = php.xymag*xx*xx + php.xymag*yy*yy
@@ -109,9 +108,10 @@ pro sdi_synth_fringemap, fringes, $      ;\A\<Arg0>
 ;   Create a mask describing all points within the desired number of orders of the axis:
     field_stop = where(pmap lt maxord and pmap gt php.minord, nout)
 
+
+
     pmap    = (php.zerph - pmap)*!pi
+
     fringes = sin(pmap)
     fringes = 1./(1 + (4*php.R/(1. - php.r)^2)*fringes*fringes)
-    fringes = fringes - min(fringes)
-    fringes = fringes/max(fringes)
 end
