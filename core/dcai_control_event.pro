@@ -106,18 +106,18 @@ pro DCAI_Control_Event, event
 
 					if n_elements(dcai_global.settings.etalon) eq 2 then begin
 
-						zerph = ( (dcai_global.settings.etalon[1].leg_voltage[0] + 1) / $
+						zerph = 2 * ( (dcai_global.settings.etalon[1].leg_voltage[0] + 1) / $
 								float(dcai_global.settings.etalon[1].voltage_range[1] - $
 									  dcai_global.settings.etalon[1].voltage_range[0]))
 
 						if dcai_global.settings.etalon[1].gap_mm lt 1 then begin
-							xmag = 0.8e-6 & ymag = 0.8e-6 & zmag = 0
+							xmag = 0.2e-6 & ymag = 0.2e-6 & zmag = 0
 						endif else begin
 							xmag = 0.8e-5 & ymag = 0.8e-5 & zmag = 0
 						endelse
 						sdi_synth_frnginit, php2, dims[0], dims[1], mag=[xmag,ymag,zmag], $
 											center=[dims[0]/2., dims[1]/2.], ordwin=[0.0,5.0], $
-				                     		phisq=1, zerph=zerph, R=.7
+				                     		phisq=150, zerph=zerph, R=.7
 				        sdi_synth_fringemap, image_b, pmap, php2, field_stop
 
 						;\\ SIMULATE WEDGED PLATES

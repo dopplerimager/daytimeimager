@@ -160,7 +160,7 @@ pro DCAI_StepsperOrder::frame
 
 				plot, xarr[use], (*self.xcorrs)[use], psym=6, sym=.5, thick=2, $
 					  xtitle='Channel', ytitle='Cross-Correlation', $
-					  yrange=[min((*self.xcorrs)[use]), max((*self.xcorrs)[use])], /ystyle
+					  yrange=[min((*self.xcorrs)[use]), max((*self.xcorrs)[use])], /ystyle, /xstyle
 
 
 			endif
@@ -189,7 +189,7 @@ pro DCAI_StepsperOrder::frame
 				wset, self.window_ids[0]
 				loadct, 0, /silent
 				plot, xarr, corr, psym=1, thick=2, xtitle='Channel', ytitle='Cross-Correlation', $
-					  yrange=[min(corr), max(corr)], /ystyle, /nodata
+					  yrange=[min(corr), max(corr)], /ystyle, /nodata, /xstyle
 				oplot, xarr, corr, color = 200, psym=6, sym=.5, thick=2
 				loadct, 39, /silent
 				oplot, xarr[xmin:*], curve, color=150, thick=1.5
@@ -213,12 +213,18 @@ pro DCAI_StepsperOrder::frame
 
 			;\\ PLOT THE SPO HISTORY
 				wset, self.window_ids[1]
-				history =  *self.stepsperorder
+				history = (*self.stepsperorder)/self.wavelength_nm[self.etalon]
 				use = where(history ne 0, nuse)
 
-				plot, history, psym=1, thick=2, yrange = [min(history[use]), max(history[use])], $
-					  xtitle='Scan #', ytitle='Steps/Order', /nodata
-				if nuse gt 0 then oplot, history[use], psym=-6, thick=2, sym=.5
+				plot, use + 1, history, psym=1, thick=2, yrange = [(min(history[use])), (max(history[use]))], $
+					  xtitle='Scan #', ytitle='Steps/Order', /nodata, xtickint = 1, $
+					  xrange=[1, self.nscans[self.etalon]], /xstyle
+				if nuse gt 0 then begin
+					loadct, 0, /silent
+					oplot, use + 1, history[use], psym=6, thick=2, sym=.5, color = 250
+					loadct, 39, /silent
+					oplot, use + 1, history[use], thick=1, color = 90
+				endif
 
 
 			;\\ INCREMENT THE SCAN NUMBER
