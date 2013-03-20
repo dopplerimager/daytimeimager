@@ -119,8 +119,8 @@ pro DCAI_Phasemapper::frame
 	;\\ WE MUST BE SCANNING NOW
 		dims = size(*dcai_global.info.image, /dimensions)
 		signal = float(*dcai_global.info.image)
-		;signal = signal - min( smooth(signal, [dims[0], dims[1]]/3., /edge))
-		;signal = signal > 0
+		signal = signal - min( smooth(signal, [dims[0], dims[1]]/3., /edge))
+		signal = signal > 0
 
 	;\\ BUILD UP COEFFICIENTS
 		*self.p += (signal * sin((2*!PI*channel)/float(self.channels)))

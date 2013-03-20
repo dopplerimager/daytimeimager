@@ -55,7 +55,10 @@ pro DCAI_Write_NetCDF, 	filename, $
 
 		id = ncdf_vardef  (ncdid, 'Etalon_Gap_mm', etalon_dim_id, 	/float)
 		id = ncdf_vardef  (ncdid, 'Etalon_Stepsperorder', etalon_dim_id, 	/float)
-		id = ncdf_vardef  (ncdid, 'Etalon_Parallel_Offset', [etalon_dim_id,etalon_leg_dim_id], 	/long)
+		id = ncdf_vardef  (ncdid, 'Etalon_Parallel_Offset', [etalon_dim_id, etalon_leg_dim_id], 	/long)
+		id = ncdf_vardef  (ncdid, 'Phasemap', [etalon_dim_id, xdim_id, ydim_id], /float)
+		id = ncdf_vardef  (ncdid, 'Normalize_Map', [zone_dim_id, chan_dim_id], /float)
+		id = ncdf_vardef  (ncdid, 'Zonemap',  [xdim_id, ydim_id], /float)
 
 		id = ncdf_vardef  (ncdid, 'Spectra', [zone_dim_id, chan_dim_id, time_dim_id], /long)
 		id = ncdf_vardef  (ncdid, 'Accumulated_Image', [xdim_id, ydim_id, time_dim_id], /long)
@@ -88,7 +91,10 @@ pro DCAI_Write_NetCDF, 	filename, $
 
        	ncdf_attput, ncdid, ncdf_varid(ncdid, 'Etalon_Gap_mm'),		   'Units', 'mm', /char
        	ncdf_attput, ncdid, ncdf_varid(ncdid, 'Etalon_Stepsperorder'), 'Units', 'Etalon digital units per nm', /char
-       	ncdf_attput, ncdid, ncdf_varid(ncdid, 'Etalon_Parallel_Offset'), 'Units', 'Etalon digital units', /char
+       	ncdf_attput, ncdid, ncdf_varid(ncdid, 'Etalon_Parallel_Offset'),'Units', 'Etalon digital units', /char
+       	ncdf_attput, ncdid, ncdf_varid(ncdid, 'Phasemap'), 			   'Units', 'Unwrapped interference order * wavelength in nm', /char
+       	ncdf_attput, ncdid, ncdf_varid(ncdid, 'Normalize_Map'), 	   'Units', 'Total pixels contributing to each spectral bin over one scan', /char
+       	ncdf_attput, ncdid, ncdf_varid(ncdid, 'Zonemap'), 			   'Units', 'Zone number of each pixel in image', /char
 
        	ncdf_attput, ncdid, ncdf_varid(ncdid, 'Spectra'),              'Units', 'Camera digital units', /char
        	ncdf_attput, ncdid, ncdf_varid(ncdid, 'Accumulated_Image'),    'Units', 'Camera digital units', /char
@@ -116,6 +122,9 @@ pro DCAI_Write_NetCDF, 	filename, $
        	ncdf_varput, ncdid, ncdf_varid(ncdid, 'Etalon_Gap_mm'), 		data.etalon_gap
        	ncdf_varput, ncdid, ncdf_varid(ncdid, 'Etalon_Stepsperorder'), 	data.etalon_stepsperorder
        	ncdf_varput, ncdid, ncdf_varid(ncdid, 'Etalon_Parallel_Offset'),data.etalon_parallel_offset
+       	ncdf_varput, ncdid, ncdf_varid(ncdid, 'Phasemap'),				data.phasemap
+       	ncdf_varput, ncdid, ncdf_varid(ncdid, 'Normalize_Map'),			data.normmap
+       	ncdf_varput, ncdid, ncdf_varid(ncdid, 'Zonemap'),				data.zonemap
 
 		;\\ UPDATE THE DISK COPY
 		ncdf_control, ncdid, /sync

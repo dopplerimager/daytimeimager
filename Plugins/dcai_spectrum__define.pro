@@ -640,6 +640,9 @@ pro DCAI_Spectrum::NewSpectrum, info
 		self.lambdas[index].phasemap = ptr_new(pmap)
 		self.lambdas[index].n_spectral_channels = info.channels
 		self.lambdas[index].sizes = fix([image_dims[0], image_dims[1], zonemap.n_zones, info.channels])
+		nmap = fltarr(zonemap.n_zones, info.channels)
+		nmap[*,*] = 1
+		self.lambdas[index].normmap = ptr_new(nmap)
 	endif
 
 
@@ -1185,7 +1188,14 @@ function DCAI_Spectrum::CreateDataStruct, lambda_index
 
 	andor_camera_driver, dcai_global.settings.external_dll, 'uGetTemperatureF', 0, cam_temp, result, /auto_acq
 
-	return, { $
+	pmap0 = *dcai_global.info.phasemap[0]
+	pmap1 = *dcai_global.info.phasemap[1]
+	pmap_dims = size(pmap0, /dimensions)
+	phasemaps = fltarr(2, pmap_dims[0], pmap_dims[1])
+	phasemaps[0,*,*] = pmap0
+	phasemaps[1,*,*] = pmap1
+
+	struc = { $
 		spectra:*l.spectra, $
 		acc_im:*l.accumulated_image, $
 		wavelength:0.0, $
@@ -1206,8 +1216,13 @@ function DCAI_Spectrum::CreateDataStruct, lambda_index
 		etalon_name:dcai_global.settings.etalon.name, $
 		etalon_gap:dcai_global.settings.etalon.gap_mm, $
 		etalon_stepsperorder:dcai_global.settings.etalon.steps_per_order, $
-		etalon_parallel_offset:transpose(dcai_global.settings.etalon.parallel_offset) $
+		etalon_parallel_offset:transpose(dcai_global.settings.etalon.parallel_offset), $
+		phasemap:phasemaps, $
+		normmap:*l.normmap, $
+		zonemap:*l.zonemap $
 	}
+
+	return, struc
 
 end
 
