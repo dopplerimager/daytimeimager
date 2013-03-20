@@ -150,7 +150,6 @@ end
 
 ;\\ VIEWPORT CLICK EVENT
 pro DCAI_Vidshow::ViewClick, event
-	help, event, /str
 	if event.press eq 1 and self.cross_hairs_on eq 1 then begin
 		self.cross_hairs_isect = [event.x, event.y]/self.zoom
 		widget_control, set_value=strjoin(string(self.cross_hairs_isect, f='(i0)'), ', '), self.isect_id
