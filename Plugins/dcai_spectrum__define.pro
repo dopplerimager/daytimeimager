@@ -168,7 +168,7 @@ pro DCAI_Spectrum::frame
 					if dcai_global.scan.type ne 'wavelength' then begin
 						use = indgen(n_elements(xaxis))
 						use_axis = use
-						xaxis = xaxis[use_axis]
+						this_xaxis = xaxis[use_axis]
 						spx = spx[use_axis]
 					endif else begin
 						sn = norm(sort(norm))
@@ -220,24 +220,6 @@ pro DCAI_Spectrum::frame
 
 				self->SaveExposure, id
 				self.lambdas[id].current_exposure ++
-
-				;if self.lambdas[id].scan_type eq 'wavelength' then begin
-				;	spectra = float(reform((*self.lambdas[id].spectra)))
-				;	normalize = float(reform((*self.lambdas[id].normmap)))
-				;	wavelength_full_range = self.lambdas[id].wavelength_range_full
-				;	wavelength_axis = xaxis
-				;	wavelength_range = self.lambdas[id].wavelength_range
-				;	scan_channels = self.lambdas[id].n_scan_channels
-				;	data = {spectra:spectra, $
-				;			normalize:normalize, $
-				;			wavelength_axis:wavelength_axis, $
-				;			wavelength_range:wavelength_range, $
-				;			wavelength_full_range:wavelength_full_range, $
-				;			scan_channels:scan_channels, $
-				;			background:_background}
-				;	save, filename='c:\users\daytimeimager\Spex_' + dt_tm_fromjs(dt_tm_tojs(systime()), format='Y$_0n$_0d$_h$_m$_s$') + '.idlsave', data
-				;endif
-
 
 				;\\ IF MULTIPLE EXPOSURES HAVE BEEN SPECIFIED, KEEP GOING UNTIL THEY ARE COMPLETE - TODO when to reset this value?
 				if self.lambdas[id].current_exposure lt self.lambdas[id].num_exposures then $
