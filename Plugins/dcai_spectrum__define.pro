@@ -467,7 +467,7 @@ pro DCAI_Spectrum::UserNewSpectrum, event
 					   	   ids = minsnr_id, edit_xsize = 10, lab_xsize = 100, start_value = '1200', /column
 
 		widget_edit_field, dlg, label = 'Filename Format', font = dcai_global.gui.font, $
-					   	   ids = filename_id, edit_xsize = 50, lab_xsize = 100, start_value = 'Y$_d$_n$', /column
+					   	   ids = filename_id, edit_xsize = 20, lab_xsize = 100, start_value = 'Y$_d$_n$', /column
 
 		zmap_base = widget_base(dlg, col=2)
 
@@ -481,7 +481,7 @@ pro DCAI_Spectrum::UserNewSpectrum, event
 			endif
 
 		widget_edit_field, zmap_base, label = 'Zonemap', font = dcai_global.gui.font, $
-					   	   ids = zonemap_id, edit_xsize = 10, lab_xsize = 100, start_value=def_zmap, /column
+					   	   ids = zonemap_id, edit_xsize = 15, lab_xsize = 100, start_value=def_zmap, /column
 		browse_btn = widget_button(zmap_base, value='Browse', font=dcai_global.gui.font, $
 									uval={tag:'plugin_event', object:self, method:'UserNewSpectrum_ZmapBrowse', id:zonemap_id.text})
 
