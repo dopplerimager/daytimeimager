@@ -14,9 +14,9 @@ pro DCAI_Control_Event, event
 
 		;\\ INDICATE THE CURRENT SCHEDULE COMMAND IN THE WIDGET LIST
 		if size(*dcai_global.info.current_queue, /type) ne 0 then begin
-			if dcai_global.info.current_command_index ne -1 and $
-			   strlen((*dcai_global.info.current_queue)[dcai_global.info.current_command_index]) gt 0 then $
-				widget_control, set_list_select=dcai_global.info.current_command_index-1, dcai_global.gui.queue
+			if dcai_global.info.current_command_index ne -1 then $
+				if strlen((*dcai_global.info.current_queue)[dcai_global.info.current_command_index-1]) gt 0 then $
+					widget_control, set_list_select=dcai_global.info.current_command_index-1, dcai_global.gui.queue
 		endif
 
 
@@ -192,12 +192,13 @@ pro DCAI_Control_Event, event
 						endif
 
 						;\\ SCANNING INFO
+						n_etz = n_elements(dcai_global.settings.etalon)
 						info_list = [info_list, $
 									 '', $
-									 'Scanning: ' + strjoin(string(dcai_global.scan.scanning, f='(i0)'), ', '), $
-				                     'Channel: ' + strjoin(string(dcai_global.scan.channel, f='(i0)') + '/' + string(dcai_global.scan.n_channels, f='(i0)'), ', '), $
-				                     'Step Size: ' + strjoin(string(dcai_global.scan.step_size, f='(f0.2)'), ', '), $
-				                     'Steps/Order/nm: ' + strjoin(string(dcai_global.settings.etalon.steps_per_order, f='(f0.4)'), ', ')]
+									 'Scanning: ' + strjoin(string(dcai_global.scan.scanning[0:n_etz-1], f='(i0)'), ', '), $
+				                     'Channel: ' + strjoin(string(dcai_global.scan.channel[0:n_etz-1], f='(i0)') + '/' + string(dcai_global.scan.n_channels[0:n_etz-1], f='(i0)'), ', '), $
+				                     'Step Size: ' + strjoin(string(dcai_global.scan.step_size[0:n_etz-1], f='(f0.2)'), ', '), $
+				                     'Steps/Order/nm: ' + strjoin(string(dcai_global.settings.etalon[0:n_etz-1].steps_per_order, f='(f0.4)'), ', ')]
 
 						;\\ ACTIVE PLUGIN INFO
 						if obj_valid(dcai_global.info.active_plugin.object) eq 1 then begin
@@ -212,6 +213,7 @@ pro DCAI_Control_Event, event
 						;\\ PHASEMAP INFO
 						info_list = [info_list, '']
 						for k = 0, n_elements(dcai_global.info.phasemap) - 1 do begin
+							if k gt n_etz - 1 then continue
 							if size(*dcai_global.info.phasemap[k], /type) ne 0 then begin
 
 								str = 'Acquired'

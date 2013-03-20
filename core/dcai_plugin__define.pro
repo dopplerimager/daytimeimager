@@ -2,6 +2,7 @@
 
 ;\\ BUILD A UID STRING FOR THIS OBJECT (THIS SHOULD BE OVERRIDDEN)
 function DCAI_Plugin::uid, args=args
+	print, 'Base class Plugin::uid should be overriden!'
 	return, ''
 end
 

@@ -1,15 +1,13 @@
 
 function DCAI_Read_NetCDF, filename
 
-	globals = [ $
-		'Start_Date_UT', $
-		'Site', $
-		'Site_code', $
-		'Latitude', $
-		'Longitude' $
-	]
 
 	names = [ $
+		'Start_Date_UT', $
+		'Site', $
+		'Site_Code', $
+		'Latitude', $
+		'Longitude', $
 		'Start_Time', $
 		'End_Time',   $
 	    'Number_Scans', $
@@ -57,12 +55,6 @@ function DCAI_Read_NetCDF, filename
 
 			ncdf_varget, id, varid, temp
 			data = create_struct(names[i], temp, data)
-		endfor
-
-		globals = reverse(globals)
-		for i = 0, n_elements(globals) - 1 do begin
-			ncdf_attget, id, globals[i], temp, /global
-			data = create_struct(globals[i], temp, data)
 		endfor
 
 	ncdf_close, id

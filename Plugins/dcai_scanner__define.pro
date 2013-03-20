@@ -142,45 +142,47 @@ function DCAI_Scanner::init
 
 
 		;\\ WAVELENGTH SCAN
-			wavelength_base = widget_base(tab_base, col=1, frame=1, /base_align_center, xsize=xsize, title='Wavelength Scan')
-			label = widget_label(wavelength_base, value = 'Wavelength Scan', font=font+'*Bold')
+			if n_elements(dcai_global.settings.etalon) gt 1 then begin
+				wavelength_base = widget_base(tab_base, col=1, frame=1, /base_align_center, xsize=xsize, title='Wavelength Scan')
+				label = widget_label(wavelength_base, value = 'Wavelength Scan', font=font+'*Bold')
 
-			nonexc_base = widget_base(wavelength_base, /nonexclusive, col=n_etalons)
-			for i = 0, n_etalons - 1 do begin
-				btn = widget_button(nonexc_base, value='Etalon ' + string(i, f='(i0)'), font=font, $
-									uval={tag:'plugin_event', object:self, method:'WaveEdit', field:'Etalon', etalon:i})
-				if self.wave_etalons[i] eq 1 then widget_control, btn, /set_button
-			endfor
+				nonexc_base = widget_base(wavelength_base, /nonexclusive, col=n_etalons)
+				for i = 0, n_etalons - 1 do begin
+					btn = widget_button(nonexc_base, value='Etalon ' + string(i, f='(i0)'), font=font, $
+										uval={tag:'plugin_event', object:self, method:'WaveEdit', field:'Etalon', etalon:i})
+					if self.wave_etalons[i] eq 1 then widget_control, btn, /set_button
+				endfor
 
-			sub_base = widget_base(wavelength_base, col=2)
-			sub_base_1 = widget_base(sub_base, col=1, /base_align_right)
-			widget_edit_field, sub_base_1, label = 'Start Wavelength (nm)', font = font, start_val=string(self.wave_start, f='(f0.5)'), /column, $
-							   edit_uval = {tag:'plugin_event', object:self, method:'WaveEdit', field:'StartWavelength'}, edit_xs = 10
-			widget_edit_field, sub_base_1, label = 'Stop Wavelength (nm)', font = font, start_val=string(self.wave_stop, f='(f0.5)'), /column, $
-							   edit_uval = {tag:'plugin_event', object:self, method:'WaveEdit', field:'StopWavelength'}, edit_xs = 10
-			widget_edit_field, sub_base_1, label = 'Channels', font = font, start_val=string(self.wave_channels, f='(i0)'), /column, $
-							   edit_uval = {tag:'plugin_event', object:self, method:'WaveEdit', field:'Channels'}, edit_xs = 10
+				sub_base = widget_base(wavelength_base, col=2)
+				sub_base_1 = widget_base(sub_base, col=1, /base_align_right)
+				widget_edit_field, sub_base_1, label = 'Start Wavelength (nm)', font = font, start_val=string(self.wave_start, f='(f0.5)'), /column, $
+								   edit_uval = {tag:'plugin_event', object:self, method:'WaveEdit', field:'StartWavelength'}, edit_xs = 10
+				widget_edit_field, sub_base_1, label = 'Stop Wavelength (nm)', font = font, start_val=string(self.wave_stop, f='(f0.5)'), /column, $
+								   edit_uval = {tag:'plugin_event', object:self, method:'WaveEdit', field:'StopWavelength'}, edit_xs = 10
+				widget_edit_field, sub_base_1, label = 'Channels', font = font, start_val=string(self.wave_channels, f='(i0)'), /column, $
+								   edit_uval = {tag:'plugin_event', object:self, method:'WaveEdit', field:'Channels'}, edit_xs = 10
 
-			btn_base = widget_base(sub_base, col=1)
-				btn = widget_button(btn_base, value='Start', font=font, uval={tag:'plugin_event', object:self, method:'Scan', action:'Start', type:'Wave'})
-				btn = widget_button(btn_base, value='Stop', font=font, uval={tag:'plugin_event', object:self, method:'Scan', action:'Stop', type:'Wave'})
-				btn = widget_button(btn_base, value='Pause', font=font, uval={tag:'plugin_event', object:self, method:'Scan', action:'Pause', type:'Wave'})
-				btn = widget_button(btn_base, value='UnPause', font=font, uval={tag:'plugin_event', object:self, method:'Scan', action:'UnPause', type:'Wave'})
+				btn_base = widget_base(sub_base, col=1)
+					btn = widget_button(btn_base, value='Start', font=font, uval={tag:'plugin_event', object:self, method:'Scan', action:'Start', type:'Wave'})
+					btn = widget_button(btn_base, value='Stop', font=font, uval={tag:'plugin_event', object:self, method:'Scan', action:'Stop', type:'Wave'})
+					btn = widget_button(btn_base, value='Pause', font=font, uval={tag:'plugin_event', object:self, method:'Scan', action:'Pause', type:'Wave'})
+					btn = widget_button(btn_base, value='UnPause', font=font, uval={tag:'plugin_event', object:self, method:'Scan', action:'UnPause', type:'Wave'})
 
-			slider_base = widget_base(wavelength_base, col=1)
-				if (self.wave_start eq self.wave_stop) then self.wave_stop += .1
+				slider_base = widget_base(wavelength_base, col=1)
+					if (self.wave_start eq self.wave_stop) then self.wave_stop += .1
 
-				label = widget_label(slider_base, value='Manual Wavelength Scan', font=font+'*Bold')
-				label = widget_label(slider_base, value=string(self.wave_start, f='(f0.5)'), font=font+'*Bold')
-				sub_base = widget_base(slider_base, col=3)
-				slider_minval = widget_label(sub_base, value=string(self.wave_start, f='(f0.5)'), font=font)
-				slider = cw_fslider(sub_base, min=self.wave_start, max=self.wave_stop, $
-								scroll=(self.wave_stop-self.wave_start)/self.wave_channels, /suppress, xsize = 300, $
-								uval={tag:'plugin_event', object:self, method:'WaveSlider'}, /drag)
-				slider_maxval = widget_label(sub_base, value=string(self.wave_stop, f='(f0.5)'), font=font)
-				self.wave_slider_ids = [slider, slider_minval, slider_maxval, label]
-				btn = widget_button(slider_base, value='Initialize', font=font+'*Bold', xs = 50, $
-									uval={tag:'plugin_event', object:self, method:'WaveEdit', field:'ManualInit'})
+					label = widget_label(slider_base, value='Manual Wavelength Scan', font=font+'*Bold')
+					label = widget_label(slider_base, value=string(self.wave_start, f='(f0.5)'), font=font+'*Bold')
+					sub_base = widget_base(slider_base, col=3)
+					slider_minval = widget_label(sub_base, value=string(self.wave_start, f='(f0.5)'), font=font)
+					slider = cw_fslider(sub_base, min=self.wave_start, max=self.wave_stop, $
+									scroll=(self.wave_stop-self.wave_start)/self.wave_channels, /suppress, xsize = 300, $
+									uval={tag:'plugin_event', object:self, method:'WaveSlider'}, /drag)
+					slider_maxval = widget_label(sub_base, value=string(self.wave_stop, f='(f0.5)'), font=font)
+					self.wave_slider_ids = [slider, slider_minval, slider_maxval, label]
+					btn = widget_button(slider_base, value='Initialize', font=font+'*Bold', xs = 50, $
+										uval={tag:'plugin_event', object:self, method:'WaveEdit', field:'ManualInit'})
+			endif
 
 	DCAI_Control_RegisterPlugin, base, self, /timer
 
@@ -204,6 +206,7 @@ pro DCAI_Scanner::timer
 	COMMON DCAI_Control, dcai_global
 
     self->LegUpdate
+    n_etz = n_elements(dcai_global.settings.etalon)
 
 	;\\ UPDATE STATUS
 	status = 'Status: Idle'
@@ -212,13 +215,13 @@ pro DCAI_Scanner::timer
 
 		case self.scan_type of
 			'Normal':begin
-				channel = strjoin(string(dcai_global.scan.channel, f='(i0)') + $
-								  '/' + string(dcai_global.scan.n_channels, f='(i0)'), ', ')
+				channel = strjoin(string(dcai_global.scan.channel[0:n_etz-1], f='(i0)') + $
+								  '/' + string(dcai_global.scan.n_channels[0:n_etz-1], f='(i0)'), ', ')
 				status = 'Status: Scan over Order, Channels = ' + channel
 			end
 			'Manual':begin
-				channel = strjoin(string(dcai_global.scan.channel, f='(i0)') + $
-								  '/' + string(dcai_global.scan.n_channels, f='(i0)'), ', ')
+				channel = strjoin(string(dcai_global.scan.channel[0:n_etz-1], f='(i0)') + $
+								  '/' + string(dcai_global.scan.n_channels[0:n_etz-1], f='(i0)'), ', ')
 				status = 'Status: Maunal Scan, Channels = ' + channel
 			end
 			'Wave':begin
@@ -409,6 +412,7 @@ pro DCAI_Scanner::Scan, event, struc=struc
 					args = 0
 					for k = 0, n_elements(self.norm_etalons) - 1 do begin
 						if self.norm_etalons[k] eq 1 then begin
+							if self.norm_channels[k] eq 0 then return
 							new_arg = {caller:self, etalon:k, n_channels:self.norm_channels, wavelength_nm:self.wavelength, $
 									   start_voltage:self.norm_start[k]}
 							if size(args, /type) eq 2 then args = new_arg else args = [args, new_arg]
@@ -430,6 +434,7 @@ pro DCAI_Scanner::Scan, event, struc=struc
 					args = 0
 					for k = 0, n_elements(self.man_etalons) - 1 do begin
 						if self.man_etalons[k] eq 1 then begin
+							if self.man_channels[k] eq 0 then return
 							new_arg = {caller:self, etalon:k, n_channels:self.man_channels[k], step_size:self.man_step[k], $
 									   start_voltage:self.man_start[k]}
 							if size(args, /type) eq 2 then args = new_arg else args = [args, new_arg]

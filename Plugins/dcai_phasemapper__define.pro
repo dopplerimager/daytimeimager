@@ -184,7 +184,6 @@ pro DCAI_Phasemapper::frame
 
 			index = -1
 			if total(self.etalons) eq 1 then index = (where(self.etalons eq 1))[0]
-			if total(self.etalons) eq n_elements(dcai_global.settings.etalon) then index = 2
 
 			*dcai_global.info.phasemap[index] = phasemap
 			dcai_global.info.phasemap_systime[index] = systime(/sec)
@@ -251,14 +250,15 @@ pro DCAI_Phasemapper::Scan, event, action=action
 			if self.scanning ne 1 and self.wavelength ne 0 then begin
 
 				;\\ WEDGE THE INACTIVE ETALON
-				volts = dcai_global.settings.etalon[inactive_etalon].wedge_voltage
-				dcai_global.settings.etalon[inactive_etalon].leg_voltage = volts
+				if n_elements(dcai_global.settings.etalon) gt 1 then begin
+					volts = dcai_global.settings.etalon[inactive_etalon].wedge_voltage
+					dcai_global.settings.etalon[inactive_etalon].leg_voltage = volts
 
-				command = {device:'etalon_setlegs', number:inactive_etalon, $
-								   port:dcai_global.settings.etalon[inactive_etalon].port, $
-								   voltage:dcai_global.settings.etalon[inactive_etalon].leg_voltage}
-				call_procedure, dcai_global.info.drivers, command
-
+					command = {device:'etalon_setlegs', number:inactive_etalon, $
+									   port:dcai_global.settings.etalon[inactive_etalon].port, $
+									   voltage:dcai_global.settings.etalon[inactive_etalon].leg_voltage}
+					call_procedure, dcai_global.info.drivers, command
+				endif
 
 				dims = size(*dcai_global.info.image, /dimensions)
 				*self.p = fltarr(dims[0], dims[1])

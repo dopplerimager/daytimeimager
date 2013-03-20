@@ -9,8 +9,8 @@ function DCAI_StepsperOrder::init
 		self.images = ptr_new(/alloc)
 		self.xcorrs = ptr_new(/alloc)
 		self.stepsperorder = ptr_new(/alloc)
-		self.nscans = [10,10]
-		self.acquire_ref = [0,0]
+		self.nscans[*] = 10
+		self.acquire_ref[*] = 0
 
 	;\\ SAVE FIELDS
 		self.save_tags = ['etalon', 'step', 'start', 'stop', 'nscans', 'wavelength_nm']
@@ -18,7 +18,6 @@ function DCAI_StepsperOrder::init
 	;\\ RESTORE SAVED SETTINGS
 		self->load_settings
 		etalon = dcai_global.settings.etalon
-
 
 	;\\ CREATE THE GUI
 		font = dcai_global.gui.font
@@ -31,9 +30,9 @@ function DCAI_StepsperOrder::init
 
 		self.status_id = widget_label(_base, xs = 500, font=font + '*Bold', value='Status: Idle', /align_left)
 
-		edit_base = widget_base(_base, col = 1, /base_align_center)
+		edit_base = widget_base(_base, col = 1, /base_align_center, /align_center)
 
-			scan_base = widget_base(edit_base, col = 2)
+			scan_base = widget_base(edit_base, col = n_elements(dcai_global.settings.etalon), /align_center)
 
 			for k = 0, n_elements(etalon) - 1 do begin
 				;\\ SCAN CONTROL FIELDS
@@ -202,7 +201,7 @@ pro DCAI_StepsperOrder::frame
 					last = (*self.stepsperorder)[self.current_scan-1]
 					change = string(100.*(peak - last)/last, f='(f0.4)') + '%'
 				endif else begin
-					chage = 'N/A'
+					change = 'N/A'
 				endelse
 
 				xyouts, peak, min(corr) + 0.22*(max(corr) - min(corr)), '!7D!3 Peak: ' + change, $
@@ -362,14 +361,16 @@ pro DCAI_StepsperOrder::Scan, event, action=action
 			if self.scanning ne 1 and self.acquire_ref[0] ne 1 then begin
 
 				;\\ WEDGE THE INACTIVE ETALON
-				inactive_etalon = 1 - self.etalon
-				volts = dcai_global.settings.etalon[inactive_etalon].wedge_voltage
-				dcai_global.settings.etalon[inactive_etalon].leg_voltage = volts
+				if n_elements(dcai_global.settings.etalon) gt 1 then begin
+					inactive_etalon = 1 - self.etalon
+					volts = dcai_global.settings.etalon[inactive_etalon].wedge_voltage
+					dcai_global.settings.etalon[inactive_etalon].leg_voltage = volts
 
-				command = {device:'etalon_setlegs', number:inactive_etalon, $
-								   port:dcai_global.settings.etalon[inactive_etalon].port, $
-								   voltage:dcai_global.settings.etalon[inactive_etalon].leg_voltage}
-				call_procedure, dcai_global.info.drivers, command
+					command = {device:'etalon_setlegs', number:inactive_etalon, $
+									   port:dcai_global.settings.etalon[inactive_etalon].port, $
+									   voltage:dcai_global.settings.etalon[inactive_etalon].leg_voltage}
+					call_procedure, dcai_global.info.drivers, command
+				endif
 
 
 				dims = size(*dcai_global.info.image, /dimensions)

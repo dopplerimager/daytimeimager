@@ -25,17 +25,15 @@ pro DCAI_Write_NetCDF, 	filename, $
 		etalon_dim_id = ncdf_dimdef(ncdid, 'Etalon', 2)
 		etalon_leg_dim_id = ncdf_dimdef(ncdid, 'EtalonLeg', 3)
 
-		start_date_ut = dt_tm_fromjs(dt_tm_tojs(systime(/ut)), format='Y$_0d$_0n$')
-
-		;\\ CREATE GLOBAL ATTRIBUTES
-		ncdf_attput, ncdid, /global, 'Start_Date_UT',start_date_ut,    /char
-		ncdf_attput, ncdid, /global, 'Site',      	 header.site,      /char
-		ncdf_attput, ncdid, /global, 'Site_code', 	 header.site_code, /char
-		ncdf_attput, ncdid, /global, 'Latitude',  	 header.latitude,  /float
-		ncdf_attput, ncdid, /global, 'Longitude', 	 header.longitude, /float
-
+		start_date_ut = dt_tm_fromjs(dt_tm_tojs(systime(/ut)), format='Y$_0n$_0d$')
 
 		;\\ CREATE THE VARIABLES
+		id = ncdf_vardef  (ncdid, 'Start_Date_UT',  /char)
+		id = ncdf_vardef  (ncdid, 'Site',      		/char)
+		id = ncdf_vardef  (ncdid, 'Site_Code',      /char)
+		id = ncdf_vardef  (ncdid, 'Latitude',      	/float)
+		id = ncdf_vardef  (ncdid, 'Longitude',      /float)
+
 		id = ncdf_vardef  (ncdid, 'Start_Time',      time_dim_id, 	/long)
 		id = ncdf_vardef  (ncdid, 'End_Time',        time_dim_id, 	/long)
     	id = ncdf_vardef  (ncdid, 'Number_Scans',    time_dim_id, 	/short)
@@ -63,6 +61,12 @@ pro DCAI_Write_NetCDF, 	filename, $
 		id = ncdf_vardef  (ncdid, 'Accumulated_Image', [xdim_id, ydim_id, time_dim_id], /long)
 
 		;\\ WRITE THE ATTRIBUTES
+		ncdf_attput, ncdid, ncdf_varid(ncdid, 'Start_Date_UT'),        'Units', 'UT Start date in YYYY_MM_DD format', /char
+		ncdf_attput, ncdid, ncdf_varid(ncdid, 'Site'),        		   'Units', 'Site name string', /char
+		ncdf_attput, ncdid, ncdf_varid(ncdid, 'Site_Code'),        	   'Units', 'Site code string', /char
+		ncdf_attput, ncdid, ncdf_varid(ncdid, 'Latitude'),        	   'Units', 'Site geodetic latitude in degrees', /char
+		ncdf_attput, ncdid, ncdf_varid(ncdid, 'Longitude'),        	   'Units', 'Site geodetic longitude in degrees', /char
+
 		ncdf_attput, ncdid, ncdf_varid(ncdid, 'Start_Time'),           'Units', 'Julian seconds', /char
        	ncdf_attput, ncdid, ncdf_varid(ncdid, 'End_Time'),             'Units', 'Julian seconds', /char
        	ncdf_attput, ncdid, ncdf_varid(ncdid, 'Number_Scans'),         'Units', 'Etalon scans', /char
@@ -92,6 +96,12 @@ pro DCAI_Write_NetCDF, 	filename, $
 		ncdf_control, ncdid, /endef
 
 		;\\ WRITE THE STATIC VARIABLES
+		ncdf_varput, ncdid, ncdf_varid(ncdid, 'Start_Date_UT'),	    	start_date_ut
+		ncdf_varput, ncdid, ncdf_varid(ncdid, 'Site'),	        		header.site
+		ncdf_varput, ncdid, ncdf_varid(ncdid, 'Site_Code'),	        	header.site_code
+		ncdf_varput, ncdid, ncdf_varid(ncdid, 'Latitude'),	        	header.latitude
+		ncdf_varput, ncdid, ncdf_varid(ncdid, 'Longitude'),	        	header.longitude
+
 		ncdf_varput, ncdid, ncdf_varid(ncdid, 'Image_Center'),	        data.image_center
       	ncdf_varput, ncdid, ncdf_varid(ncdid, 'Image_Binning'),         data.image_binning
       	ncdf_varput, ncdid, ncdf_varid(ncdid, 'Image_Size'),	        data.image_size
