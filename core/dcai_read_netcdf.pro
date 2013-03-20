@@ -5,7 +5,7 @@ function DCAI_Read_NetCDF, filename
 	names = [ $
 		'Start_Date_UT', $
 		'Site', $
-		'Site_code', $
+		'Site_Code', $
 		'Latitude', $
 		'Longitude', $
 		'Start_Time', $
