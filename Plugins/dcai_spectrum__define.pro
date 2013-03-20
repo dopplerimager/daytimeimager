@@ -222,8 +222,9 @@ pro DCAI_Spectrum::frame
 				self.lambdas[id].current_exposure ++
 
 				;\\ IF MULTIPLE EXPOSURES HAVE BEEN SPECIFIED, KEEP GOING UNTIL THEY ARE COMPLETE - TODO when to reset this value?
-				if self.lambdas[id].current_exposure lt self.lambdas[id].num_exposures then $
+				if self.lambdas[id].current_exposure lt self.lambdas[id].num_exposures then begin
 					self->Scan, 0, command = {index:id, action:'start', restart:0}
+				endif
 
 			endif else begin ;\\ if exposure finished
 				self->Scan, 0, command = {index:id, action:'start', restart:1}
@@ -303,6 +304,7 @@ pro DCAI_Spectrum::Scan, event, command=command
 			self.scanning = 1
 			self.lambda_scanning = id
 			self.lambdas[id].scanning = 1
+			success = self->set_active(self->uid())
 
 			if uval.restart eq 0 then begin
 				;\\ (RE)CREATE SOME FIELDS
@@ -335,6 +337,9 @@ pro DCAI_Spectrum::Scan, event, command=command
 
 			success = DCAI_ScanControl('stop', 'dummy', args)
 			if success eq 0 then return
+
+			;\\ UNSET AS ACTIVE PLUGIN
+			success = self->unset_active(self->uid())
 
 			widget_control, set_value = 'No Scans Active', self.info_labels[0]
 			self.scanning = 0
@@ -536,7 +541,8 @@ end
 				stop_lambda:(fix(stop_lambda, type=4))[0], $
 				zonemap:zonemap, $
 				etalons:etalons, $
-				filename_format:fname_format}
+				filename_format:fname_format, $
+				title:''}
 
 		self->NewSpectrum, info
 	end
@@ -597,6 +603,7 @@ pro DCAI_Spectrum::NewSpectrum, info
 
 	;\\ DO OTHER SETUP STUFF HERE
 	self.lambdas[index].uid = uid
+	self.lambdas[index].title = info.title
 	self.lambdas[index].n_scan_channels = info.channels
 	self.lambdas[index].n_zones = zonemap.n_zones
 	self.lambdas[index].min_scans = info.minscans
@@ -924,13 +931,21 @@ end
 ;\\ EXECUTE COMMANDS SENT FROM A SCHEDULE FILE
 pro DCAI_Spectrum::ScheduleCommand, command, keywords, values
 
+	COMMON DCAI_Control, dcai_global
 	if self.scanning ne 0 then return
 
 	lambda = 0.
-	min_snr = 1000.
-	min_scans = 2
-	max_scans = 15
-	num_exposures = 1
+	min_snr = -1
+	min_scans = -1
+	max_scans = -1
+	channels = -1
+	num_exposures = -1
+	title = ''
+	zonemap = ''
+	file_format = ''
+	channels = -1
+	start_lambda = 0.0
+	stop_lambda = 0.0
 
 	for k = 0, n_elements(keywords) - 1 do begin
 		case keywords[k] of
@@ -938,7 +953,20 @@ pro DCAI_Spectrum::ScheduleCommand, command, keywords, values
 			'min_snr':       min_snr = float(values[k])
 			'min_scans':     min_scans = fix(values[k])
 			'max_scans':     max_scans = fix(values[k])
+			'channels':      channels = fix(values[k])
 			'num_exposures': num_exposures = fix(values[k])
+			'start_lambda':  start_lambda = fix(values[k], type=4)
+			'stop_lambda':   stop_lambda = fix(values[k], type=4)
+			'zonemap': 		 zonemap = values[k]
+			'title': 		 title = values[k]
+			'filename_format': file_format = values[k]
+			'etalons': begin
+				res = execute('_etalons = ' + values[k])
+				etalons = intarr(n_elements(dcai_global.settings.etalon))
+				for i = 0, n_elements(_etalons) - 1 do begin
+					if _etalons[i] ge 0 and _etalons[i] le n_elements(etalons) then etalons[_etalons[i]] = 1
+				endfor
+			end
 			else: DCAI_Log, 'WARNING: Keyword not recognized by Spectrum plugin: ' + keywords[k]
 		endcase
 	endfor
@@ -949,28 +977,63 @@ pro DCAI_Spectrum::ScheduleCommand, command, keywords, values
 		end
 
 		'shutdown':begin ;\\ SHUTDOWN THE SPECTRUM OF THE SPECIFIED WAVELENGTH (AND ZONEMAP - TODO )
-			if lambda ne 0 then begin
-				l = where(self.lambas.wavlength eq lambda, nmatch)
-				if nmatch eq 1 then self->RemoveSpectrum, 0, l[0]
-			endif
+			index = self->IndexFromTitle(title)
+			if index ne -1 then self->RemoveSpectrum, 0, index
 		end
 
-		'start':begin ;\\ START SPECTRAL ACQUISITION (MATCH ZONEMAP ALSO - TODO )
-			if lambda ne 0 then begin
-				l = (where(self.lambas.wavlength eq lambda, nmatch))[0]
-				if nmatch eq 1 then begin
-					self.lambdas[l].min_snr = min_snr
-					self.lambdas[l].min_scans = min_scans
-					self.lambdas[l].max_scans = max_scans
-					self.lambdas[l].num_exposures = num_exposures
-					self->Scan, 0, command = {index:l, action:'start', restart:0}
+		'create':begin
+			info = {title:title, $
+					wavelength:lambda, $
+					channels:channels, $
+					minscans:min_scans, $
+					maxscans:max_scans, $
+					minsnr:min_snr, $
+					start_lambda:start_lambda, $
+					stop_lambda:stop_lambda, $
+					zonemap:zonemap, $
+					etalons:etalons, $
+					filename_format:file_format}
+
+			help, info, /str
+
+			self->NewSpectrum, info
+		end
+
+		'start':begin ;\\ START SPECTRAL ACQUISITION GIVEN AN INDEX
+			index = self->IndexFromTitle(title)
+			if index ne -1 then begin
+				if min_snr ne -1 then begin
+					self.lambdas[index].min_snr = min_snr
+					widget_control, set_value = string(min_snr, f='(i0)'), self.lambdas[index].edit_ids.minsnr
 				endif
+				if min_scans ne -1 then begin
+					self.lambdas[index].min_scans = min_scans
+					widget_control, set_value = string(min_scans, f='(i0)'), self.lambdas[index].edit_ids.minscans
+				endif
+				if max_scans ne -1 then begin
+					self.lambdas[index].max_scans = max_scans
+					widget_control, set_value = string(max_scans, f='(i0)'), self.lambdas[index].edit_ids.maxscans
+				endif
+				if num_exposures ne -1 then begin
+					self.lambdas[index].num_exposures = num_exposures
+					widget_control, set_value = string(num_exposures, f='(i0)'), self.lambdas[index].edit_ids.numexposures
+				endif
+
+				self->Scan, 0, command = {index:index, action:'start', restart:0}
 			endif
 		end
 
 		else: DCAI_Log, 'WARNING: Command not recognized by Spectrum plugin: ' + command
 	endcase
 
+end
+
+function DCAI_Spectrum::IndexFromTitle, title
+	if title eq '' then return, -1
+	for j = 0, n_elements(self.lambdas) - 1 do begin
+		if self.lambdas[j].title eq title then return, j
+	endfor
+	return, -1
 end
 
 
@@ -1177,6 +1240,7 @@ pro DCAI_Spectrum__define
 	n_etalons = n_elements(dcai_global.settings.etalon)
 
 	per_lambda = {lambda_struc, $ 				;\\ Has to be a named structure to appear in an object structure
+				  title:'', $					;\\ Used to identify spectrum objects from schedule commands
 				  uid:'', $ 					;\\ String allowing unique id for each wavelength, zonemap, etlaon, etc.
 				  etalons:intarr(n_etalons), $ 	;\\ Will be initialized to -1 for each etalon
 				  wavelength:0.0, $				;\\ Wavelength of this spectrum
