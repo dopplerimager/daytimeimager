@@ -226,10 +226,8 @@ pro DCAI_StepsperOrder::frame
 					oplot, use + 1, history[use], thick=1, color = 90
 				endif
 
-
 			;\\ INCREMENT THE SCAN NUMBER
 			self.current_scan ++
-
 
 			;\\ DO WE NEED TO DO ANOTHER SCAN?
 			if self.current_scan ne self.nscans[self.etalon] then begin
