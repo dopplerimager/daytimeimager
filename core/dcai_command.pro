@@ -196,8 +196,11 @@ pro DCAI_Command, in_string, errcode=errcode
 			opened = 0
 			objref = obj_new()
 			if size(*dcai_global.info.plugins, /n_dimensions) ne 0 then begin
-				match = where(strlowcase(obj_class(*dcai_global.info.plugins)) eq plugin_name, nmatch)
-				if nmatch ne 0 then begin
+				match = -1
+				for ii = 0, n_elements(*dcai_global.info.plugins) - 1 do begin
+					if strlowcase(obj_class((*dcai_global.info.plugins)[ii])) eq plugin_name then match = ii
+				endfor
+				if match ne -1 then begin
 					opened = 1
 					objref = (*dcai_global.info.plugins)[match[0]]
 				endif

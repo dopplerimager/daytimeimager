@@ -68,16 +68,18 @@ pro DCAI_Drivers, command
 
 		'etalon_setlegs':begin
 
+			step_flyback = 0
 			if size(lastLegs, /type) eq 0 then lastLegs = command.voltage
 
 			tx = string(13B)
 			voltage = command.voltage > 0
 			voltage = voltage < 65535
 
-
 			;\\ LOOK FOR LARGE JUMPS OF THE HIRES ETALON, BREAK DOWN INTO MANY SMALLER JUMPS
-			if dcai_global.settings.etalon[command.number].gap_mm gt 1.0 and $
-				abs(mean(lastLegs - voltage)) gt 5000 then begin
+			if step_flyback and $
+			   dcai_global.settings.etalon[command.number].gap_mm gt 1.0 and $
+		   	   abs(mean(lastLegs - voltage)) gt 5000 then begin
+
 				currentVoltage = lastLegs
 				running = 1
 

@@ -27,7 +27,10 @@ function DCAI_Read_NetCDF, filename
 		'Etalon_Stepsperorder', $
 		'Etalon_Parallel_Offset', $
 		'Spectra', $
-		'Accumulated_Image' $
+		'Accumulated_Image', $
+		'Phasemap', $
+		'Normalize_Map', $
+		'Zonemap' $
 	]
 
 	data = {filename:filename}
